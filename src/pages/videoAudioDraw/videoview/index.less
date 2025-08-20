@@ -1,0 +1,40 @@
+.rightVideo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 400px;
+    background: #F0F4FA;
+    border-radius: 20px;
+
+    & > div {
+        position: relative;
+        display: flex;
+        justify-content: center;
+        height: 100%;
+
+        & > video {
+            max-width: 100%;
+            object-fit: contain;
+            background-color: #F0F4FA;
+
+            &.stepTwoVideoBgImage {
+                position: absolute;
+            }
+        }
+
+        & > div {
+            position: absolute;
+            cursor: pointer;
+        }
+    }
+
+    .rightVideoCover {
+        margin-left: 20px;
+        width: 50%;
+        & > img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+    }
+}
