@@ -4,8 +4,16 @@ import { useRootStore } from '../../models';
 import { RULER_HEIGHT } from '../../models/constant';
 
 const Ruler = () => { 
-    const { scale, scrollLeft } = useRootStore();
+    const { 
+        duration,
+        scale, 
+        scrollLeft,
+        isTimelineDragging,
+        setScrollLeft,
+        setIsTimelineDragging
+    } = useRootStore();
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [dragStartX, setDragStartX] = useState<number>(0);
 
     // 绘制时间刻度
     const drawTimeRuler = (ctx: CanvasRenderingContext2D) => {
@@ -87,8 +95,46 @@ const Ruler = () => {
         };
     }, [scale, scrollLeft]);
 
+    // 处理拖拽开始
+    const handleDragStart = (e: React.MouseEvent) => {
+        e.preventDefault();
+
+        setIsTimelineDragging(true);
+        setDragStartX(e.clientX);
+        // 更新播放头位置
+        //   setPlayheadPosition(Math.min(duration, clickTime));
+    };
+
+    // 处理拖拽移动
+    const handleDragMove = (e: React.MouseEvent) => {
+        if (!isTimelineDragging) {
+            return;
+        }
+        // 处理时间线拖拽
+        const deltaX = e.clientX - dragStartX;
+        // 确保scrollLeft不会小于0，防止出现负刻度
+        const newScrollLeft = Math.max(0, Math.min((duration * scale  * 2) - canvasRef.current!.width, scrollLeft - deltaX));
+        
+        setScrollLeft(newScrollLeft);
+        // 更新拖拽起始位置，确保平滑拖动
+        setDragStartX(e.clientX);
+    };
+
+    // 处理拖拽结束
+    const handleDragEnd = () => {
+        setIsTimelineDragging(false);
+    };
+
     return (
-      <canvas ref={canvasRef} />
+      <canvas ref={canvasRef} 
+        onMouseDown={handleDragStart}
+        onMouseMove={handleDragMove}
+        onMouseUp={handleDragEnd}
+        onMouseLeave={handleDragEnd}
+        style={{ 
+            cursor: isTimelineDragging ? 'grabbing' : 'grab'
+        }}
+      />
     );
 }
 
