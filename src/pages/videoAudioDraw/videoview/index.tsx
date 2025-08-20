@@ -1,11 +1,11 @@
-import { IModel } from '@/types/editor';
+import { IVideo } from '../types';
 import { useEffect, useRef } from 'react';
 import styles from './index.less';
 
 const VideoView = ({
     curMaterial,
 }: {
-    curMaterial: IModel | null;
+    curMaterial: IVideo | null;
 }) => {
 
      const videoInfo = useRef({ 
@@ -19,7 +19,6 @@ const VideoView = ({
     });
 
     useEffect(() => {
-
         if (curMaterial?.id) {
             const container = document.getElementById('custom_video_container');
             const videoCoverEle = document.getElementById('custom_video');

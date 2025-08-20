@@ -1,16 +1,19 @@
 
 import { useEffect, useRef, useState } from 'react';
-import { IModel } from '@/types/editor';
 import { Upload, Button, Form, InputNumber, message, Select, ColorPicker, Checkbox } from 'antd';
 import styles from './index.less'
 import { extractAudioFromVideo } from '@/utils/ffmpeg';
 import VideoView from './videoview';
-import VideoTimeline from './timeline';
+import VideoTimeline from './timeline/index.new';
+import { IVideo } from './types';
+import { TrackType } from './models/constant';
+import { useRootStore } from './models';
 
 
 const VideoAudioDraw = () => {
 
-    const [curMaterial, setCurMaterial] = useState<IModel>({});
+    const [curMaterial, setCurMaterial] = useState<IVideo | null>(null);
+    const { setDuration } = useRootStore();
 
     return (
         <div className={styles.warpper}>
@@ -27,9 +30,7 @@ const VideoAudioDraw = () => {
                     }}
                     showUploadList={false}
                     customRequest={async ({ file }: any) => {
-                        setCurMaterial({
-                            ...curMaterial
-                        });
+                        setCurMaterial(null);
                         const videoEle = document.getElementById('custom_video') as HTMLVideoElement;
                         videoEle.src = URL.createObjectURL(file);
                         const bgVideoEle = document.getElementById('custom_video_bg') as HTMLVideoElement;
@@ -47,13 +48,15 @@ const VideoAudioDraw = () => {
                                 setCurMaterial({
                                     ...curMaterial,
                                     id: Math.random().toString(36).substring(2),
-                                    type: 'video',
+                                    type: TrackType.VIDEO,
                                     src: bgVideoEle.src,
                                     audioFile,
                                     duration: bgVideoEle.duration,
                                     width: bgVideoEle.videoWidth,
                                     height: bgVideoEle.videoHeight,
                                 })
+
+                                setDuration(bgVideoEle.duration);
                             };                            
                         })
                         videoEle.addEventListener('error', () => {
@@ -69,8 +72,7 @@ const VideoAudioDraw = () => {
                 <div>
                     {
                         curMaterial?.duration && curMaterial.audioFile ? <VideoTimeline 
-                            audioFile={curMaterial.audioFile}
-                            duration={curMaterial.duration} /> : null
+                            audioFile={curMaterial.audioFile} /> : null
                     }
                 </div>
             </div>

@@ -1,0 +1,42 @@
+.timelineWrapper {
+    display: flex;
+    flex-direction: column;
+
+
+    .tools {
+        width: 100%;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        & > button + button {
+            margin-left: 20px;
+        }
+    }
+
+    .timelineContainer {
+        position: relative;
+        display: flex;
+        width: 100%;
+        height: 500px;
+        overflow: hidden;
+        user-select: none;
+
+        .leftContent {
+            width: 100px;
+            margin-top: 55px;
+
+            .trackHeader {
+                display: flex;
+                align-items: center;
+                background-color: beige;
+            }
+        }
+
+        .rightContent {
+            width: calc(100% - 100px);
+
+        }
+    }
+}
