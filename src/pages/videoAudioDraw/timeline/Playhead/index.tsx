@@ -13,6 +13,9 @@ const Playhead = () => {
         playheadPosition,
         scale,
         scrollLeft,
+        isTimelineDragging,
+        isClippingOrDragging,
+
         setIsPlayheadDragging
     } = useRootStore();
 
@@ -21,6 +24,17 @@ const Playhead = () => {
         e.preventDefault();
         setIsPlayheadDragging(true);
     };
+
+    useEffect(() => {
+        if (containerRef.current) {
+            if (isClippingOrDragging || isTimelineDragging) {
+                containerRef.current.style.pointerEvents = 'none'
+            } else {
+                containerRef.current.style.pointerEvents = 'auto'
+            }
+        }
+    }, [isClippingOrDragging, isTimelineDragging, containerRef.current])
+
 
     useEffect(() => {
         if (containerRef.current) {

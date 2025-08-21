@@ -19,6 +19,7 @@ const Tracks = () => {
         setTracks,
         setScrollLeft,
         setScale,
+        setIsClippingOrDragging
     } = useRootStore();
     const startY = 0;
     const [dragStartX, setDragStartX] = useState<number>(0);
@@ -35,6 +36,10 @@ const Tracks = () => {
     const [isDragging, setIsDragging] = useState(false);
     const [isClipping, setIsClipping] = useState(false);
     const animationRef = useRef<number>();
+
+    useEffect(() => {
+       setIsClippingOrDragging(isDragging || isClipping);
+    }, [isDragging, isClipping])
 
     useEffect(() => {
         setClipItems(tracks.map((track) => ({
