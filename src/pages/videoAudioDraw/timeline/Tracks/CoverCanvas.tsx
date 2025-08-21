@@ -78,12 +78,9 @@ const Tracks = ({
         return false;
         });
 
-        // 如果没有点击视频片段，则拖动时间线
         if (!clickedClip) {
             setDragStartX(e.clientX);
             setSelectedClipId(null);
-            // 更新播放头位置
-            //   setPlayheadPosition(Math.min(duration, clickTime));
         }
     };
 
@@ -95,17 +92,6 @@ const Tracks = ({
 
         const mouseX = e.clientX - containerRef.current!.getBoundingClientRect().left;
         const mouseY = e.clientY - containerRef.current!.getBoundingClientRect().top;
-
-        // 处理时间线拖拽
-        if (isTimelineDragging) {
-            const deltaX = e.clientX - dragStartX;
-            // 确保scrollLeft不会小于0，防止出现负刻度
-            const newScrollLeft = Math.max(0, Math.min((duration * scale) - containerRef.current!.getBoundingClientRect().width, scrollLeft - deltaX));
-            setScrollLeft(newScrollLeft);
-            // 更新拖拽起始位置，确保平滑拖动
-            setDragStartX(e.clientX);
-            return;
-        }
 
         // 处理视频片段拖拽或调整
         clipItems.forEach((clip: IClipItem) => {
@@ -200,24 +186,6 @@ const Tracks = ({
         });
     };
 
-    // 处理鼠标滚轮缩放
-    const handleWheel = (e: React.WheelEvent) => {
-        e.preventDefault();
-
-        // 获取鼠标在时间线上的位置
-        const mouseX = e.clientX - containerRef.current!.getBoundingClientRect().left;
-        const timeAtMouse = (mouseX + scrollLeft) / scale;
-
-        // 调整缩放比例
-        const newScale = Math.max(10, Math.min(500, scale - e.deltaY * 0.1));
-
-        // 保持鼠标位置的时间点不变
-        const newScrollLeft = timeAtMouse * newScale - mouseX;
-
-        setScale(newScale);
-        setScrollLeft(newScrollLeft);
-    };
-
     const handleClick = (e: React.MouseEvent) => {
         // 如果已经在拖拽中，则不处理点击
         if (isTimelineDragging || clipItems.some((clip: IClipItem) => clip.isDragging || clip.resizeHandle)) {
@@ -256,7 +224,6 @@ const Tracks = ({
             onMouseMove={handleDragMove}
             onMouseUp={handleDragEnd}
             onMouseLeave={handleDragEnd}
-            // onWheel={handleWheel}
             onClick={handleClick} />
     )
 }

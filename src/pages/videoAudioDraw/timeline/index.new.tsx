@@ -23,6 +23,7 @@ const Timeline: React.FC<{ audioFile: File; }> = ({ audioFile })  => {
         setIsPlayheadDragging,
         setScrollLeft,
         setScale,
+        setIsTimelineDragging
     } = useRootStore();
 
     const [videoTracks, setVideoTracks] = useState<ITrack[]>([
@@ -153,7 +154,15 @@ const Timeline: React.FC<{ audioFile: File; }> = ({ audioFile })  => {
     // 处理拖拽结束
     const handleDragEnd = () => {
         setIsPlayheadDragging(false);
+        setIsTimelineDragging(false);
     };
+
+    useEffect(() => {
+        window.addEventListener('mouseup', handleDragEnd);
+        return () => {
+            window.removeEventListener('mouseup', handleDragEnd);
+        }
+    }, [])
 
     return (
         <div className={styles.timelineWrapper}>
@@ -187,9 +196,6 @@ const Timeline: React.FC<{ audioFile: File; }> = ({ audioFile })  => {
                 </div>
                 <div className={styles.rightContent} 
                     onMouseMove={handleDragMove}
-                    onMouseUp={handleDragEnd}
-                    onMouseLeave={handleDragEnd}
-
                     ref={(el) => {
                         containerRef.current = el;
                     }}>

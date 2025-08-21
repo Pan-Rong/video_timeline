@@ -1,6 +1,7 @@
 import { IVideo } from '../types';
 import { useEffect, useRef } from 'react';
 import styles from './index.less';
+import { useRootStore } from '../models';
 
 const VideoView = ({
     curMaterial,
@@ -18,52 +19,85 @@ const VideoView = ({
         containerHeight: 0,
     });
 
+    const { 
+        playheadPosition,
+        setPlayheadPosition,
+    } = useRootStore();
+
     useEffect(() => {
-        if (curMaterial?.id) {
-            const container = document.getElementById('custom_video_container');
-            const videoCoverEle = document.getElementById('custom_video');
-            if (videoCoverEle && container) {
-                const containerRect = container.getBoundingClientRect();
-                let eleWidth = 0, eleHeight = 0;
-                const tempData = curMaterial;
-                const materialHeight = tempData.height;
-                const materialWidth = tempData.width;
+        const videoCoverEle: any = document.getElementById('custom_video');
+        if (videoCoverEle) {
+            if (curMaterial?.id) {
+                const container = document.getElementById('custom_video_container');
+                if (container) {
+                    const containerRect = container.getBoundingClientRect();
+                    let eleWidth = 0, eleHeight = 0;
+                    const tempData = curMaterial;
+                    const materialHeight = tempData.height;
+                    const materialWidth = tempData.width;
 
-                const landscape = materialWidth > materialHeight;
+                    const landscape = materialWidth > materialHeight;
 
-                if (landscape) {
-                    // 横屏转竖屏
-                    eleWidth = Math.ceil(containerRect.height * videoInfo.current.realWidth / videoInfo.current.realHeight);
-                    eleHeight = Math.ceil(eleWidth * videoInfo.current.realWidth / videoInfo.current.realHeight);
+                    if (landscape) {
+                        // 横屏转竖屏
+                        eleWidth = Math.ceil(containerRect.height * videoInfo.current.realWidth / videoInfo.current.realHeight);
+                        eleHeight = Math.ceil(eleWidth * videoInfo.current.realWidth / videoInfo.current.realHeight);
 
-                    videoCoverEle.style.width = `${eleWidth}px`;
-                    videoCoverEle.style.height = 'auto';
-                    videoCoverEle.style.backgroundColor = '#000000';
-                } else {
-                    // 竖屏
-                    eleHeight = containerRect.height;
-                    eleWidth = Math.ceil(eleHeight * videoInfo.current.realWidth / videoInfo.current.realHeight);
+                        videoCoverEle.style.width = `${eleWidth}px`;
+                        videoCoverEle.style.height = 'auto';
+                        videoCoverEle.style.backgroundColor = '#000000';
+                    } else {
+                        // 竖屏
+                        eleHeight = containerRect.height;
+                        eleWidth = Math.ceil(eleHeight * videoInfo.current.realWidth / videoInfo.current.realHeight);
 
-                    videoCoverEle.style.width = `auto`;
-                    videoCoverEle.style.height = `${eleHeight}px`;
-                    videoCoverEle.style.backgroundColor = 'transparent';
+                        videoCoverEle.style.width = `auto`;
+                        videoCoverEle.style.height = `${eleHeight}px`;
+                        videoCoverEle.style.backgroundColor = 'transparent';
+                    }
+                    videoInfo.current = {
+                        ...videoInfo.current,
+                        eleWidth,
+                        eleHeight,
+                        maxMoveY: containerRect.height - Math.floor((containerRect.height - eleHeight) / 2),
+                        minMoveY: Math.ceil((containerRect.height - eleHeight) / 2),
+                        containerHeight: containerRect.height
+                    }
                 }
-                videoInfo.current = {
-                    ...videoInfo.current,
-                    eleWidth,
-                    eleHeight,
-                    maxMoveY: containerRect.height - Math.floor((containerRect.height - eleHeight) / 2),
-                    minMoveY: Math.ceil((containerRect.height - eleHeight) / 2),
-                    containerHeight: containerRect.height
+            } else {
+                videoCoverEle.style.backgroundColor = 'transparent';
+            }
+
+            const handleVideoTimeupdate = () => {
+                const videoCoverEle: any = document.getElementById('custom_video');
+                if (videoCoverEle) {
+                    console.log('视频播放进度', videoCoverEle.currentTime);
+                    setPlayheadPosition(videoCoverEle.currentTime || 0);
                 }
             }
-        } else {
-            const videoCoverEle = document.getElementById('custom_video');
-            if (videoCoverEle) {
-                videoCoverEle.style.backgroundColor = 'transparent';
+            // 监听视频播放进度
+    
+            videoCoverEle.addEventListener('timeupdate', handleVideoTimeupdate)
+            
+            return () => {
+               videoCoverEle.removeEventListener('timeupdate', handleVideoTimeupdate);
             }
         }
     }, [curMaterial?.id])
+
+    // 修改前面添加的useEffect
+    useEffect(() => {
+        const videoElement = document.getElementById('custom_video') as HTMLVideoElement;
+        if (videoElement) {
+            // 总是更新视频时间，无论播放状态如何
+            // 但添加一个小延迟以减少频繁更新
+            const timeoutId = setTimeout(() => {
+                videoElement.currentTime = playheadPosition;
+            }, 50);
+            
+            return () => clearTimeout(timeoutId);
+        }
+    }, [playheadPosition]);
 
 
     return (

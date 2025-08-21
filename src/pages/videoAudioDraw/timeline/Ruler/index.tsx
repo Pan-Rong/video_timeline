@@ -128,17 +128,10 @@ const Ruler = () => {
         ));
     };
 
-    // 处理拖拽结束
-    const handleDragEnd = () => {
-        setIsTimelineDragging(false);
-    };
-
     return (
       <canvas ref={canvasRef} 
         onMouseDown={handleDragStart}
         onMouseMove={handleDragMove}
-        onMouseUp={handleDragEnd}
-        onMouseLeave={handleDragEnd}
         style={{ 
             cursor: isTimelineDragging ? 'grabbing' : 'grab'
         }}
