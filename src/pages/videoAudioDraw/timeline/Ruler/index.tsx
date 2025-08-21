@@ -8,8 +8,10 @@ const Ruler = () => {
         duration,
         scale, 
         scrollLeft,
+        playheadPosition,
         isTimelineDragging,
         setScrollLeft,
+        setPlayheadPosition,
         setIsTimelineDragging
     } = useRootStore();
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -107,7 +109,8 @@ const Ruler = () => {
 
     // 处理拖拽移动
     const handleDragMove = (e: React.MouseEvent) => {
-        if (!isTimelineDragging) {
+        const parentEle = canvasRef.current?.parentElement;
+        if (!isTimelineDragging || !parentEle) {
             return;
         }
         // 处理时间线拖拽
@@ -118,6 +121,11 @@ const Ruler = () => {
         setScrollLeft(newScrollLeft);
         // 更新拖拽起始位置，确保平滑拖动
         setDragStartX(e.clientX);
+
+        setPlayheadPosition(Math.max(
+            Math.min(playheadPosition, duration - newScrollLeft / scale, (parentEle.clientWidth || 0) /scale),
+            0,
+        ));
     };
 
     // 处理拖拽结束

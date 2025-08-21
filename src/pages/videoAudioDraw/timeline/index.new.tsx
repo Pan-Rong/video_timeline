@@ -5,9 +5,10 @@ import { ITrack } from '../types';
 import Tracks from './Tracks';
 import { Button } from 'antd';
 import { useRootStore } from '../models';
-import { VideoCameraOutlined } from '@ant-design/icons';
 import { TRACK_HEIGHT, TrackType, SCALE_STEP, SCALE_MAX, SCALE_MIN } from '../models/constant';
 import { useAudioStore } from '../models/audio';
+import Playhead from './Playhead';
+
 
 
 const Timeline: React.FC<{ audioFile: File; }> = ({ audioFile })  => { 
@@ -17,22 +18,28 @@ const Timeline: React.FC<{ audioFile: File; }> = ({ audioFile })  => {
         duration, 
         scale, 
         scrollLeft,
+        isPlayheadDragging,
+        setPlayheadPosition,
+        setIsPlayheadDragging,
         setScrollLeft,
         setScale,
     } = useRootStore();
 
-    const [tracks, setTracks] = useState<ITrack[]>([
+    const [videoTracks, setVideoTracks] = useState<ITrack[]>([
         {
             id: '_1_',
             height: TRACK_HEIGHT[TrackType.VIDEO],
             name: '视频轨道',
-            icon: <VideoCameraOutlined />,
+            icon: '',
             type: TrackType.VIDEO,
             trackIndex: 0,
             startTime: 0,
             endTime: duration,
         }
     ]);
+    const [audioTracks, setAudioTracks] = useState<ITrack[]>([]);
+
+    const [tracks, setTracks] = useState<ITrack[]>([]);
 
     const { 
         audioContext,
@@ -41,6 +48,11 @@ const Timeline: React.FC<{ audioFile: File; }> = ({ audioFile })  => {
         setWaveformData, // 存储波形数据
         setStaticWaveformData   // 存储静态波形数据
     } = useAudioStore();
+
+    useEffect(() => {
+        setTracks([...videoTracks, ...audioTracks]);
+    }, [videoTracks, audioTracks])
+
 
     // 处理音频文件
     const handleAudioFile = () => {
@@ -95,7 +107,7 @@ const Timeline: React.FC<{ audioFile: File; }> = ({ audioFile })  => {
                         height: TRACK_HEIGHT[TrackType.AUDIO],
                     };
                     
-                 setTracks([...tracks, newAudioTrack]);
+                 setAudioTracks([newAudioTrack]);
             })
             .catch((error) => {
                 console.error('音频解码错误:', error);
@@ -114,6 +126,34 @@ const Timeline: React.FC<{ audioFile: File; }> = ({ audioFile })  => {
             setLoaded(true);
         }
     }, [containerRef.current])
+
+    // 指针处理拖拽移动
+    const handleDragMove = (e: React.MouseEvent) => {
+        if (!isPlayheadDragging || !containerRef.current) {
+            return;
+        }
+
+        // 计算鼠标相对于容器的位置，并考虑滚动偏移
+        const rect = containerRef.current.getBoundingClientRect();
+        const relativeX = e.clientX - rect.left;
+
+
+        // 计算新的播放头位置（秒）
+       // 公式：(鼠标相对时间线位置) / 缩放比例
+        const newPosition = relativeX / scale;
+
+        // 确保播放头位置在有效范围内
+        const clampedPosition = Math.max(0, Math.min(duration, newPosition));
+        
+        // 更新播放头位置
+        setPlayheadPosition(clampedPosition);
+    };
+
+
+    // 处理拖拽结束
+    const handleDragEnd = () => {
+        setIsPlayheadDragging(false);
+    };
 
     return (
         <div className={styles.timelineWrapper}>
@@ -146,6 +186,10 @@ const Timeline: React.FC<{ audioFile: File; }> = ({ audioFile })  => {
                     }
                 </div>
                 <div className={styles.rightContent} 
+                    onMouseMove={handleDragMove}
+                    onMouseUp={handleDragEnd}
+                    onMouseLeave={handleDragEnd}
+
                     ref={(el) => {
                         containerRef.current = el;
                     }}>
@@ -154,6 +198,7 @@ const Timeline: React.FC<{ audioFile: File; }> = ({ audioFile })  => {
                             <Fragment>
                                 <Ruler />
                                 <Tracks tracks={tracks}/>
+                                <Playhead />
                             </Fragment>
                         ) : null
                     }

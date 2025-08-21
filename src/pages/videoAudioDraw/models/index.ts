@@ -5,9 +5,11 @@ interface IRootStore {
     scrollLeft: number;
     playheadPosition: number;
     isTimelineDragging: boolean;
+    isPlayheadDragging: boolean;
     selectedClipId: string | null;
     duration: number;
 
+    setIsPlayheadDragging: (isPlayheadDragging: boolean) => void;
     setDuration: (duration: number) => void;
     setSelectedClipId: (selectedClipId: string | null) => void;
     setIsTimelineDragging: (isTimelineDragging: boolean) => void;
@@ -22,9 +24,11 @@ export const useRootStore = create<IRootStore>((set) => ({
     scrollLeft: 0,
     playheadPosition: 0,
     isTimelineDragging: false,
+    isPlayheadDragging: false,
     selectedClipId: null,
     duration: 0,
 
+    setIsPlayheadDragging: (isPlayheadDragging: boolean) => set(() => ({ isPlayheadDragging })),
     setDuration: (duration: number) => set(() => ({ duration })),
     setSelectedClipId: (selectedClipId: string | null) => set(() => ({ selectedClipId })),
     setIsTimelineDragging: (isTimelineDragging: boolean) => set(() => ({ isTimelineDragging })),

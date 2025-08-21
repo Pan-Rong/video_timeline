@@ -100,9 +100,12 @@ const TracksCanvas = ({
                 const availableWidth = width - 10; // 减去边距
                 let thumbWidth = Math.max(40, Math.min(80, availableWidth)); // 最大宽度60px
                 const imgCount = Math.ceil(width / thumbWidth);
+
+                const timeRanges = [startX/ scale, Math.min(startX + width, canvasRef.current!.width) / scale];
+
                 // 获取当前片段对应的所有缩略图ID
                 const clipThumbnailIds = videoThumbnails
-                    .filter(item => !(item.startTime > clip.endTime || item.endTime < clip.startTime))
+                    .filter(item => !(item.startTime > timeRanges[1] || item.endTime < timeRanges[0]))
                     .map(item => item.id);
 
                 if (clipThumbnailIds.length) {

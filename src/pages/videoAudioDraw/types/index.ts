@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { IFont, IShadow } from './text';
-import { TrackType } from '../modes/constant';
+import { TrackType } from '../models/constant';
 
 export interface IOption {
     label: string;
