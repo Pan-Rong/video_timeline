@@ -61,6 +61,7 @@ export interface IClipItem extends IModel {
     endTime: number;
     trackIndex: number;
     isDragging?: boolean;
+    isActive?: boolean;
     resizeHandle?: 'left' | 'right' | '';
 }
 

@@ -18,7 +18,10 @@ const Timeline: React.FC<{ audioFile: File; }> = ({ audioFile })  => {
         duration, 
         scale, 
         scrollLeft,
+        tracks,
         isPlayheadDragging,
+
+        setTracks,  
         setPlayheadPosition,
         setIsPlayheadDragging,
         setScrollLeft,
@@ -39,8 +42,6 @@ const Timeline: React.FC<{ audioFile: File; }> = ({ audioFile })  => {
         }
     ]);
     const [audioTracks, setAudioTracks] = useState<ITrack[]>([]);
-
-    const [tracks, setTracks] = useState<ITrack[]>([]);
 
     const { 
         audioContext,
@@ -203,7 +204,7 @@ const Timeline: React.FC<{ audioFile: File; }> = ({ audioFile })  => {
                         loaded ? (
                             <Fragment>
                                 <Ruler />
-                                <Tracks tracks={tracks}/>
+                                <Tracks/>
                                 <Playhead />
                             </Fragment>
                         ) : null

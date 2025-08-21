@@ -5,12 +5,8 @@ import { ITrack, IVideoThumbnail } from '../../types';
 import { useAudioStore } from '../../models/audio';
 
 
-const TracksCanvas = ({
-    tracks
-}: {
-    tracks: ITrack[]
-}) => {
-    const { scale, scrollLeft } = useRootStore();
+const TracksCanvas = () => {
+    const { scale, scrollLeft, tracks, } = useRootStore();
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const { duration } = useRootStore();
     const [videoThumbnails, setVideoThumbnails] = useState<IVideoThumbnail[]>([]);
@@ -381,6 +377,22 @@ const TracksCanvas = ({
         };
     }, [scale, scrollLeft, canvasRef.current, tracks, videoThumbnails, preloadedThumbnails]);
 
+
+    // 在组件中添加useEffect钩子来设置Canvas尺寸
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        
+        // 获取Canvas的实际显示尺寸
+        const container = canvas.parentElement;
+        if (container) {
+            const { width, height } = container.getBoundingClientRect();
+            
+            // 设置Canvas的绘图表面尺寸与显示尺寸一致
+            canvas.width = width;
+            canvas.height = height;
+        }
+    }, [canvasRef.current]);
 
     return (
         <canvas  id={'custom_tracks_canvas'} ref={canvasRef}/>

@@ -19,7 +19,6 @@ const Playhead = () => {
         // 处理拖拽开始
     const handleDragStart = (e: React.MouseEvent) => {
         e.preventDefault();
-        e.stopPropagation(); // 防止事件冒泡
         setIsPlayheadDragging(true);
     };
 

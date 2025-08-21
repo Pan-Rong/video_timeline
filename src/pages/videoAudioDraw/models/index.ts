@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { ITrack } from '../types/index';
+
 
 interface IRootStore {
     scale: number;
@@ -8,7 +10,9 @@ interface IRootStore {
     isPlayheadDragging: boolean;
     selectedClipId: string | null;
     duration: number;
+    tracks: ITrack[];
 
+    setTracks: (tracks: ITrack[]) => void;
     setIsPlayheadDragging: (isPlayheadDragging: boolean) => void;
     setDuration: (duration: number) => void;
     setSelectedClipId: (selectedClipId: string | null) => void;
@@ -27,7 +31,9 @@ export const useRootStore = create<IRootStore>((set) => ({
     isPlayheadDragging: false,
     selectedClipId: null,
     duration: 0,
+    tracks: [],
 
+    setTracks: (tracks: ITrack[]) => set(() => ({ tracks })),
     setIsPlayheadDragging: (isPlayheadDragging: boolean) => set(() => ({ isPlayheadDragging })),
     setDuration: (duration: number) => set(() => ({ duration })),
     setSelectedClipId: (selectedClipId: string | null) => set(() => ({ selectedClipId })),

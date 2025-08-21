@@ -8,11 +8,7 @@ import TracksCanvas from './TracksCanvas';
 import CoverCanvas from './CoverCanvas';
 
 
-const Tracks = ({
-    tracks,
-}: {
-    tracks: ITrack[]
-}) => {
+const Tracks = () => {
     const containerRef = useRef<HTMLDivElement>(null);
    
     return (
@@ -20,8 +16,8 @@ const Tracks = ({
             ref={containerRef}
             id={'custom_tracks_container'}
             className={styles.tracksContainer}>
-            <TracksCanvas tracks={tracks} />
-            <CoverCanvas tracks={tracks}/>
+            <TracksCanvas />
+            <CoverCanvas/>
         </div>
     )
 }
