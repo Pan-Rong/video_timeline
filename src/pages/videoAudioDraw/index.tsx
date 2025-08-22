@@ -37,27 +37,21 @@ const VideoAudioDraw = () => {
                         bgVideoEle.src = URL.createObjectURL(file);
 
                         bgVideoEle.addEventListener('loadeddata', async () => {
-                            // // 从视频中提取音频
+                            // 从视频中提取音频
                             const audioBlob = await extractAudioFromVideo(file,bgVideoEle);
-
                             // 创建音频文件对象
                             const audioFile = new File([audioBlob], `${file.name.split('.')[0]}.wav`, { type: 'audio/wav' });
-
-                            bgVideoEle.currentTime = 0; // 假设视频的第一秒
-                            bgVideoEle.onseeked = () => {
-                                setCurMaterial({
-                                    ...curMaterial,
-                                    id: Math.random().toString(36).substring(2),
-                                    type: TrackType.VIDEO,
-                                    src: bgVideoEle.src,
-                                    audioFile,
-                                    duration: bgVideoEle.duration,
-                                    width: bgVideoEle.videoWidth,
-                                    height: bgVideoEle.videoHeight,
-                                })
-
-                                setDuration(bgVideoEle.duration);
-                            };                            
+                            setCurMaterial({
+                                ...curMaterial,
+                                id: Math.random().toString(36).substring(2),
+                                type: TrackType.VIDEO,
+                                src: bgVideoEle.src,
+                                audioFile,
+                                duration: bgVideoEle.duration,
+                                width: bgVideoEle.videoWidth,
+                                height: bgVideoEle.videoHeight,
+                            })
+                            setDuration(bgVideoEle.duration);                            
                         })
                         videoEle.addEventListener('error', () => {
                             message.error('视频加载失败');

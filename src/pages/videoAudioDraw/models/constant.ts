@@ -19,3 +19,5 @@ export const SCALE_MAX = 200;
 export const SCALE_MIN = 10;
 // 手柄宽度
 export const HANDLE_WIDTH = 12;
+
+export const THUMBNAIL_WIDTH = 60;

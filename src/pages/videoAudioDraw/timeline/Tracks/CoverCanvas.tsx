@@ -305,7 +305,7 @@ const Tracks = () => {
         // 右侧手柄
         ctx.fillStyle = 'rgba(29, 43, 240, 0.9)';
         ctx.beginPath();
-        ctx.roundRect(endX - handleWidth, handleY, handleWidth, handleHeight, [0, cornerRadius, cornerRadius, 0]);
+        ctx.roundRect(endX - handleWidth + 5, handleY, handleWidth, handleHeight, [0, cornerRadius, cornerRadius, 0]);
         ctx.fill();
     }
 

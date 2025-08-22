@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import { useRootStore } from '../../models';
-import { TrackType, TRACK_HEIGHT, RULER_HEIGHT, TRACK_SPACING } from '../../models/constant';
+import { TrackType, TRACK_HEIGHT, THUMBNAIL_WIDTH, TRACK_SPACING } from '../../models/constant';
 import { ITrack, IVideoThumbnail } from '../../types';
 import { useAudioStore } from '../../models/audio';
 
@@ -23,28 +23,28 @@ const TracksCanvas = () => {
     useEffect(() => {
         // 获取视频缩略图，用于绘制视频轨道
         const videoEle = document.getElementById('custom_video_bg') as HTMLVideoElement;
-        if (videoEle) {
+        if (videoEle && canvasRef.current) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             if (ctx) {
-                canvas.width = 100; // 缩略图宽度
-                canvas.height = TRACK_HEIGHT[TrackType.VIDEO]; // 缩略图高度
-
-                // 帧数间隔
-                let newThumbnails: IVideoThumbnail[] = [];
-                const frameInterval = Math.ceil(1 * duration * 100 / (scale * 5));
-
-                //   const newThumbnails: VideoThumbnail[] = [];
-                const imageCache: Record<string, HTMLImageElement> = {};
-                // 创建一个加载所有缩略图的Promise数组
-                const loadPromises = [];
-                // setVideoThumbnails(newThumbnails);
-                for (let time = 0; time < duration; time += frameInterval) {
-                        loadPromises.push(new Promise<void>((resolve) => {
+                const handleThumbnailLoad = async () => {
+                    if (!canvasRef.current) {
+                        return;
+                    }
+                    let newThumbnails: IVideoThumbnail[] = [];
+                    const drawEndTime = Math.min(duration, canvasRef.current?.width / scale);
+                    // 帧数间隔
+                    const frameInterval = Math.ceil(100 * drawEndTime / (scale * 10));  // Math.ceil(1 * duration * 100 / (scale * 20));
+                    const imageCache: Record<string, HTMLImageElement> = {};
+                    canvas.width = THUMBNAIL_WIDTH; // 缩略图宽度
+                    canvas.height = TRACK_HEIGHT[TrackType.VIDEO]; // 缩略图高度
+                    
+                    for (let time = 0; time < drawEndTime; time += frameInterval) {
+                        await new Promise<void>((resolve) => {
                             // 设置视频.currentTime来获取对应时间点的帧
                             videoEle.currentTime = time;
                             // 使用setTimeout确保视频帧已更新
-                            setTimeout(() => {
+                            videoEle.onseeked = () => {
                                 ctx.drawImage(videoEle, 0, 0, canvas.width, canvas.height);
                                 const thumbnail = canvas.toDataURL('image/jpeg');
                                 // 创建新的视频片段
@@ -52,7 +52,7 @@ const TracksCanvas = () => {
                                 const newThumbnail: IVideoThumbnail = {
                                     id: thumbnailId,
                                     startTime: time,
-                                    endTime: Math.min(time + frameInterval, duration),
+                                    endTime: Math.min(time + frameInterval, drawEndTime),
                                     thumbnail: thumbnail,
                                 };
                                 newThumbnails.push(newThumbnail);
@@ -65,17 +65,17 @@ const TracksCanvas = () => {
                                 };
                                 // img.onerror = resolve;
                                 img.src = thumbnail;
-                            }, 100);
-                        }));
+                                // document.body.appendChild(img);
+                            };     
+                        });
                     }
-                    // 所有缩略图加载完成后更新状态
-                    Promise.all(loadPromises).then(() => {
-                        setVideoThumbnails(newThumbnails);
-                        setPreloadedThumbnails(imageCache);
-                    });
+                    setVideoThumbnails(newThumbnails);
+                    setPreloadedThumbnails(imageCache);
+                }
+                handleThumbnailLoad();
             }
         }
-    }, [duration, scale]);
+    }, [duration, scale, canvasRef.current]);
 
     // 绘制视频轨道
     const drawVideoTrack = (ctx: CanvasRenderingContext2D, track: ITrack) => {
@@ -93,10 +93,9 @@ const TracksCanvas = () => {
         if (startX + width > 0 && startX < canvasRef.current!.width) {
             if (Object.keys(preloadedThumbnails).length > 0) {  
                 // 计算每个缩略图的宽度
-                const availableWidth = width - 10; // 减去边距
-                let thumbWidth = Math.max(40, Math.min(80, availableWidth)); // 最大宽度60px
-                const imgCount = Math.ceil(width / thumbWidth);
-
+                const availableWidth = Math.min(canvasRef.current!.width - startX, width); // 减去边距
+                let thumbWidth = THUMBNAIL_WIDTH; // 宽度60px
+                const imgCount = Math.ceil(availableWidth / thumbWidth);
                 const timeRanges = [startX/ scale, Math.min(startX + width, canvasRef.current!.width) / scale];
 
                 // 获取当前片段对应的所有缩略图ID
@@ -110,7 +109,6 @@ const TracksCanvas = () => {
                     if (imgCount > len) {
                         const integer = Math.floor(imgCount / len); // 每个元素至少重复的次数
                         const remainder = imgCount % len; // 剩余需要分配的元素数量
-
                         // 重新计算每个元素应该出现的次数
                         const counts = clipThumbnailIds.map((_, index) => {
                             return index < remainder ? integer + 1 : integer;
@@ -179,7 +177,7 @@ const TracksCanvas = () => {
 
         // 仅绘制可见部分
         if (canvasRef.current && (startX + width > 0 && startX < canvasRef.current!.width)) {
-            const startIdx = Math.floor(track.startTime / duration * staticWaveformData.length);
+            const startIdx = Math.floor(Math.max(track.startTime, startX / scale) / duration * staticWaveformData.length);
             const endIdx = Math.ceil( Math.min(track.endTime, canvasRef.current.width / scale) / duration * staticWaveformData.length);
             const amplitudeArray = staticWaveformData.slice(startIdx, endIdx);
             // 绘制静态波形
