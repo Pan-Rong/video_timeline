@@ -13,6 +13,7 @@ const TracksCanvas = () => {
     // 1. 添加预加载缩略图的状态
     const [preloadedThumbnails, setPreloadedThumbnails] = useState<Record<string, HTMLImageElement>>({});
     const startY = 0;
+    const cornerRadius = 6; // 设置6px圆角
 
     const { 
         audioBuffer,
@@ -82,6 +83,13 @@ const TracksCanvas = () => {
         const trackY = startY + track.trackIndex * (TRACK_HEIGHT[TrackType.VIDEO] + TRACK_SPACING);
         ctx.fillStyle = '#2d2d2d';
         ctx.fillRect(0, trackY, canvasRef.current!.width, TRACK_HEIGHT[TrackType.VIDEO]);
+
+        ctx.fillStyle = 'rgba(7, 111, 247, 0.2)';
+        ctx.beginPath();
+        ctx.roundRect(0, trackY, Math.min(canvasRef.current!.width, duration * scale), TRACK_HEIGHT[TrackType.VIDEO], [0, cornerRadius, cornerRadius, 0]);
+        ctx.fill();
+   
+
         const clip = {
             startTime: track.startTime,
             endTime: track.endTime,
@@ -170,6 +178,11 @@ const TracksCanvas = () => {
         // 绘制音频轨道背景
         ctx.fillStyle = '#2d2d2d';
         ctx.fillRect(0, trackY, canvasRef.current!.width, TRACK_HEIGHT[TrackType.AUDIO]);
+
+        ctx.fillStyle = 'rgba(7, 111, 247, 0.2)';
+        ctx.beginPath();
+        ctx.roundRect(0, trackY, Math.min(canvasRef.current!.width, duration * scale), TRACK_HEIGHT[TrackType.AUDIO], [0, cornerRadius, cornerRadius, 0]);
+        ctx.fill();
    
         // 绘制波形
         const startX = track.startTime * scale - scrollLeft;
