@@ -34,10 +34,10 @@ const TracksCanvas = () => {
                     let newThumbnails: IVideoThumbnail[] = [];
                     const drawEndTime = Math.min(duration, canvasRef.current?.width / scale);
                     // 帧数间隔
-                    const frameInterval = Math.ceil(100 * drawEndTime / (scale * 10));  // Math.ceil(1 * duration * 100 / (scale * 20));
+                    const frameInterval = Math.ceil(10 * drawEndTime / (scale * 10));  // Math.ceil(1 * duration * 100 / (scale * 20));
                     const imageCache: Record<string, HTMLImageElement> = {};
-                    canvas.width = THUMBNAIL_WIDTH; // 缩略图宽度
-                    canvas.height = TRACK_HEIGHT[TrackType.VIDEO]; // 缩略图高度
+                    canvas.width = THUMBNAIL_WIDTH * 2; // 缩略图宽度
+                    canvas.height = TRACK_HEIGHT[TrackType.VIDEO] * 2; // 缩略图高度
                     
                     for (let time = 0; time < drawEndTime; time += frameInterval) {
                         await new Promise<void>((resolve) => {
@@ -121,10 +121,12 @@ const TracksCanvas = () => {
                             }
                         });
                     } else {
-                        // 当imgCount <= len时，直接取前imgCount个元素
-                        tempList.push(...clipThumbnailIds.slice(0, imgCount));
+                        // 当imgCount <= len时，尽量将 clipThumbnailIds 中元素均匀分布
+                        const interval = Math.floor(len / imgCount); // 计算填充比例
+                        for (let i = 0; i < imgCount; i++) {
+                            tempList.push(clipThumbnailIds[i * interval]);
+                        }
                     }
-
                     tempList.forEach((thumbId, index) => {
                         const img = preloadedThumbnails[thumbId];
                         if (img) {
