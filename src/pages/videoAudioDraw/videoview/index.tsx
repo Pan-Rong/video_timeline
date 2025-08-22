@@ -90,12 +90,9 @@ const VideoView = ({
         const videoElement = document.getElementById('custom_video') as HTMLVideoElement;
         if (videoElement) {
             // 总是更新视频时间，无论播放状态如何
-            // 但添加一个小延迟以减少频繁更新
-            const timeoutId = setTimeout(() => {
+            requestAnimationFrame(() => {
                 videoElement.currentTime = playheadPosition;
-            }, 50);
-            
-            return () => clearTimeout(timeoutId);
+            })
         }
     }, [playheadPosition]);
 

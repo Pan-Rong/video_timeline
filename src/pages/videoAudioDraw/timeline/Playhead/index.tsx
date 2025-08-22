@@ -26,6 +26,7 @@ const Playhead = () => {
     };
 
     useEffect(() => {
+        // 处理拖拽过程中，播放头的指针事件
         if (containerRef.current) {
             if (isClippingOrDragging || isTimelineDragging) {
                 containerRef.current.style.pointerEvents = 'none'
