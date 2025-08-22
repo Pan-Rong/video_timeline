@@ -21,7 +21,13 @@ const VideoView = ({
 
     const { 
         playheadPosition,
+        scale,
+        isPlayheadDragging,
+        isClippingOrDragging,
+        isTimelineDragging,
+        videoIsPlaying,
         setPlayheadPosition,
+        setVideoIsPlaying
     } = useRootStore();
 
     useEffect(() => {
@@ -76,8 +82,17 @@ const VideoView = ({
                 }
             }
             // 监听视频播放进度
-    
-            videoCoverEle.addEventListener('timeupdate', handleVideoTimeupdate)
+            videoCoverEle.addEventListener('timeupdate', handleVideoTimeupdate);
+            // 监听视频播放状态
+            videoCoverEle.addEventListener('play', () => {
+                setVideoIsPlaying(true);
+            })
+            videoCoverEle.addEventListener('pause', () => {
+                setVideoIsPlaying(false);
+            })
+            videoCoverEle.addEventListener('ended', () => {
+                setVideoIsPlaying(false);
+            })
             
             return () => {
                videoCoverEle.removeEventListener('timeupdate', handleVideoTimeupdate);
@@ -88,14 +103,20 @@ const VideoView = ({
     // 修改前面添加的useEffect
     useEffect(() => {
         const videoElement = document.getElementById('custom_video') as HTMLVideoElement;
-        if (videoElement) {
+        if (videoElement && !videoIsPlaying) {
             // 总是更新视频时间，无论播放状态如何
             requestAnimationFrame(() => {
                 videoElement.currentTime = playheadPosition;
             })
         }
-    }, [playheadPosition]);
+    }, [playheadPosition, videoIsPlaying]);
 
+    useEffect(() => {
+        const videoElement = document.getElementById('custom_video') as HTMLVideoElement;
+        if (videoElement) {
+            videoElement.pause();
+        }
+    }, [isClippingOrDragging, isTimelineDragging, isPlayheadDragging, scale])
 
     return (
          <div className={styles.rightVideo}>

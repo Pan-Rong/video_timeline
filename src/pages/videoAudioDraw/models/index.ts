@@ -12,7 +12,9 @@ interface IRootStore {
     duration: number;
     tracks: ITrack[];
     isClippingOrDragging: boolean;
+    videoIsPlaying: boolean;
 
+    setVideoIsPlaying: (videoIsPlaying: boolean) => void;
     setIsClippingOrDragging: (isClippingOrDragging: boolean) => void;
     setTracks: (tracks: ITrack[]) => void;
     setIsPlayheadDragging: (isPlayheadDragging: boolean) => void;
@@ -35,7 +37,9 @@ export const useRootStore = create<IRootStore>((set) => ({
     duration: 0,
     tracks: [],
     isClippingOrDragging: false,
-    
+    videoIsPlaying: false,
+
+    setVideoIsPlaying: (videoIsPlaying: boolean) => set(() => ({ videoIsPlaying })),
     setIsClippingOrDragging: (isClippingOrDragging: boolean) => set(() => ({ isClippingOrDragging })),
     setTracks: (tracks: ITrack[]) => set(() => ({ tracks })),
     setIsPlayheadDragging: (isPlayheadDragging: boolean) => set(() => ({ isPlayheadDragging })),
