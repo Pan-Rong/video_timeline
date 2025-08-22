@@ -94,10 +94,36 @@ const Timeline: React.FC<{ audioFile: File; }> = ({ audioFile })  => {
                 tempSourceNode.connect(analyserNode);
                 // 获取波形数据
                 const amplitudeArray = new Uint8Array(analyserNode.frequencyBinCount);
+                const channelData = buffer.getChannelData(0);
+                const step = Math.floor(channelData.length / amplitudeArray.length);
+                // 结合最大值和平均值的混合方法
+                const windowSize = 8; // 窗口大小
+                for (let i = 0; i < amplitudeArray.length; i++) {
+                    let sum = 0;
+                    let max = 0;
+                    let count = 0;
+                    
+                    for (let j = 0; j < windowSize; j++) {
+                        const index = i * step + Math.floor(j * step / windowSize);
+                        if (index < channelData.length) {
+                            const absValue = Math.abs(channelData[index]);
+                            sum += absValue;
+                            if (absValue > max) {
+                                max = absValue;
+                            }
+                            count++;
+                        }
+                    }
+                    const avgValue = sum / count;
+                    // 使用70%的最大值和30%的平均值混合
+                    const mixedValue = max * 0.7 + avgValue * 0.3;
+                    
+                    // 映射到 [0, 255]
+                    amplitudeArray[i] = Math.floor((mixedValue + 1) * 128);
+                }
                 setWaveformData(amplitudeArray);
                 // 创建静态波形数据的副本
                 setStaticWaveformData(new Uint8Array(amplitudeArray));
-              
                 const newAudioTrack: ITrack = {
                         id: `audio-${Date.now()}`,
                         startTime: 0,
@@ -172,6 +198,14 @@ const Timeline: React.FC<{ audioFile: File; }> = ({ audioFile })  => {
                     <span>{`视频时长：${duration}秒`}</span>
                 </div>
                 <div className={styles.tool}>
+                    <Button type='primary' 
+                        onClick={() => {
+                            // todo
+                        }} >分割</Button>
+                    <Button type='primary' 
+                        onClick={() => {
+                            // todo
+                        }} >删除</Button>
                     <Button type='primary' 
                         onClick={() => {
                             setScale(Math.min(SCALE_MAX, scale + SCALE_STEP));

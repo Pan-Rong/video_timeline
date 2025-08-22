@@ -178,42 +178,10 @@ const TracksCanvas = () => {
         if (!audioBuffer || !staticWaveformData) return;
 
         // 仅绘制可见部分
-        if (startX + width > 0 && startX < canvasRef.current!.width) {
-            const buffer = audioBuffer;
-            const channelData = buffer.getChannelData(0);
-            const amplitudeArray = staticWaveformData.slice(0);
-            const step = Math.floor(channelData.length / amplitudeArray.length);
-
-            // 结合最大值和平均值的混合方法
-            const windowSize = 8; // 窗口大小
-        
-            for (let i = 0; i < amplitudeArray.length; i++) {
-                let sum = 0;
-                let max = 0;
-                let count = 0;
-                
-                for (let j = 0; j < windowSize; j++) {
-                    const index = i * step + Math.floor(j * step / windowSize);
-                    if (index < channelData.length) {
-                        const absValue = Math.abs(channelData[index]);
-                        sum += absValue;
-                        if (absValue > max) {
-                            max = absValue;
-                        }
-                        count++;
-                    }
-                }
-                const avgValue = sum / count;
-                // 使用70%的最大值和30%的平均值混合
-                const mixedValue = max * 0.7 + avgValue * 0.3;
-                
-                // 映射到 [0, 255]
-                amplitudeArray[i] = Math.floor((mixedValue + 1) * 128);
-            }
-
-            // 保存静态波形数据的副本（新增）
-            setStaticWaveformData(new Uint8Array(amplitudeArray));
-            
+        if (canvasRef.current && (startX + width > 0 && startX < canvasRef.current!.width)) {
+            const startIdx = Math.floor(track.startTime / duration * staticWaveformData.length);
+            const endIdx = Math.ceil( Math.min(track.endTime, canvasRef.current.width / scale) / duration * staticWaveformData.length);
+            const amplitudeArray = staticWaveformData.slice(startIdx, endIdx);
             // 绘制静态波形
             drawWaveform({ startX, ctx, width, trackY, amplitudeArray, progress: 0 });
         }
@@ -237,9 +205,7 @@ const TracksCanvas = () => {
     }) {
 
         const audioRealHeight = trackY + TRACK_HEIGHT[TrackType.AUDIO];
-
         const centerY = TRACK_HEIGHT[TrackType.AUDIO] / 1;
-
         const barWidth = width / amplitudeArray.length;
         
         // 计算进度线位置
@@ -263,11 +229,10 @@ const TracksCanvas = () => {
             const value = Math.abs((amplitudeArray[i] - 128) / 128); // 取绝对值，将上下部分合并
             const y = audioRealHeight - (value * centerY); // 从底部向上绘制
             const x = i * barWidth + startX;
-
             ctx.lineTo(x, y);
         }
         
-        ctx.lineTo(width, audioRealHeight);
+        ctx.lineTo(width + startX, audioRealHeight);
         ctx.closePath();
         ctx.fillStyle = upperGradient;
         ctx.fill();
@@ -309,12 +274,12 @@ const TracksCanvas = () => {
             const y = audioRealHeight - (value * centerY);
             const x = i * barWidth + startX;
             if (i === 0) {
-            ctx.moveTo(x, y);
+                ctx.moveTo(x, y);
             } else {
-            ctx.lineTo(x, y);
+                ctx.lineTo(x, y);
             }
         }
-        // ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
         ctx.strokeStyle = 'rgba(7, 111, 247, 0.5)';
         ctx.lineWidth = 1;
         ctx.stroke();
