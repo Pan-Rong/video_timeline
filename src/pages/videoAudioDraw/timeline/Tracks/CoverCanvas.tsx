@@ -299,8 +299,8 @@ const Tracks = () => {
     }
 
     const drawClip = (ctx: CanvasRenderingContext2D, clip: IClipItem) => {
-        const startX = clip.startTime * scale - scrollLeft * scale;
-        const endX = clip.endTime * scale - scrollLeft * scale;
+        const startX = clip.startTime * scale - scrollLeft;
+        const endX = clip.endTime * scale - scrollLeft;
         const trackY = clip.trackIndex * (TRACK_HEIGHT[clip.type] + TRACK_SPACING) + startY;
 
         // 绘制选中效果
