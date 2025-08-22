@@ -6,8 +6,6 @@ import styles from './index.less';
 const Playhead = () => {
     const containerRef = useRef<HTMLDivElement>(null);
     const parentRef = useRef<HTMLElement | null>(null);
-    const animationRef = useRef<number>();
-    const [localPosition, setLocalPosition] = useState<number>(0);
 
     const { 
         playheadPosition,
@@ -43,30 +41,17 @@ const Playhead = () => {
         }
     }, [containerRef.current])
 
-
-    // 使用requestAnimationFrame更新位置
-    const updatePosition = useCallback((position: number) => {
-        if (animationRef.current) {
-            cancelAnimationFrame(animationRef.current);
-        }
-        
-        animationRef.current = requestAnimationFrame(() => {
-            setLocalPosition(position);
-        });
-    }, []);
-
-    useEffect(() => {
-        updatePosition(playheadPosition);
-    }, [playheadPosition, updatePosition]);
-
     return (
         <div  
             ref={containerRef}
             className={styles.playheadContainer}
             onMouseDown={handleDragStart}
-            style={{ left: Math.min(
-                parentRef.current?.clientWidth || 0, 
-                Math.floor(localPosition * scale))
+            style={{ left: Math.max(
+                0,
+                Math.min(
+                    parentRef.current?.clientWidth || 0, 
+                    Math.floor(playheadPosition * scale - scrollLeft))
+                )
             }}>
             <div>
                 <div className={styles.playhead} />

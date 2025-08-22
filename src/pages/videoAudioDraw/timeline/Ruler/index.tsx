@@ -16,6 +16,7 @@ const Ruler = () => {
     } = useRootStore();
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [dragStartX, setDragStartX] = useState<number>(0);
+    const preScrollLeft = useRef<number>(scrollLeft);
 
     // 绘制时间刻度
     const drawTimeRuler = (ctx: CanvasRenderingContext2D) => {
@@ -103,8 +104,7 @@ const Ruler = () => {
 
         setIsTimelineDragging(true);
         setDragStartX(e.clientX);
-        // 更新播放头位置
-        //   setPlayheadPosition(Math.min(duration, clickTime));
+        preScrollLeft.current = scrollLeft;
     };
 
     // 处理拖拽移动
@@ -116,16 +116,19 @@ const Ruler = () => {
         // 处理时间线拖拽
         const deltaX = e.clientX - dragStartX;
         // 确保scrollLeft不会小于0，防止出现负刻度
-        const newScrollLeft = Math.max(0, Math.min((duration * scale  * 2) - canvasRef.current!.width, scrollLeft - deltaX));
+        const newScrollLeft = Math.max(0, Math.min(duration * scale * 10 - canvasRef.current!.width, scrollLeft - deltaX, duration * scale));
         
         setScrollLeft(newScrollLeft);
         // 更新拖拽起始位置，确保平滑拖动
         setDragStartX(e.clientX);
 
+        // 基于绝对位置计算播放头位置，确保相对静止
+        const playheadRelativePosition = playheadPosition * scale - preScrollLeft.current + newScrollLeft;
         setPlayheadPosition(Math.max(
-            Math.min(playheadPosition, duration - newScrollLeft / scale, (parentEle.clientWidth || 0) /scale),
+            Math.min(playheadRelativePosition / scale, (parentEle.clientWidth || 0) / scale, duration),
             0,
         ));
+        preScrollLeft.current = newScrollLeft;
     };
 
     return (

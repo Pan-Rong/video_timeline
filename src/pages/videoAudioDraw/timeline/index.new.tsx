@@ -11,6 +11,9 @@ import Playhead from './Playhead';
 
 
 
+const prePositionData = {
+    position: 0,
+}
 const Timeline: React.FC<{ audioFile: File; }> = ({ audioFile })  => { 
     const containerRef = useRef<HTMLDivElement | null>(null);
     const [loaded, setLoaded] = useState<boolean>(false);
@@ -20,6 +23,7 @@ const Timeline: React.FC<{ audioFile: File; }> = ({ audioFile })  => {
         scrollLeft,
         tracks,
         isPlayheadDragging,
+        playheadPosition,
 
         setTracks,  
         setPlayheadPosition,
@@ -165,10 +169,9 @@ const Timeline: React.FC<{ audioFile: File; }> = ({ audioFile })  => {
         const rect = containerRef.current.getBoundingClientRect();
         const relativeX = e.clientX - rect.left;
 
-
-        // 计算新的播放头位置（秒）
-       // 公式：(鼠标相对时间线位置) / 缩放比例
-        const newPosition = relativeX / scale;
+        // 计算播放头位置（秒）
+       // 公式：(鼠标相对时间线位置) / 缩放比例 + 滚动偏移
+        const newPosition = relativeX / scale + scrollLeft / scale;
 
         // 确保播放头位置在有效范围内
         const clampedPosition = Math.max(0, Math.min(duration, newPosition));
