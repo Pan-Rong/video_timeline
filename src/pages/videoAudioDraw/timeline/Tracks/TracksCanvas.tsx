@@ -279,11 +279,8 @@ const TracksCanvas = () => {
 
     // 绘制文字片段
     const drawTextClip = (ctx: CanvasRenderingContext2D, clip: IClipItem) => {
-        const trackY = startY + clip.trackIndex * (TRACK_HEIGHT[clip.type] + TRACK_SPACING);  
-        ctx.fillStyle = '#fff';
-        ctx.font = '16px sans-serif';
-        ctx.fillText(clip.content || '', clip.startTime * scale - scrollLeft + 10, trackY + TRACK_HEIGHT[TrackType.TEXT] / 2);
         // 绘制剪辑的时间轴,带圆角的片段边框
+        const trackY = startY + clip.trackIndex * (TRACK_HEIGHT[clip.type] + TRACK_SPACING);  
         const cornerRadius = 6; // 设置6px圆角
         const startX = clip.startTime * scale - scrollLeft;
         const width = (clip.endTime - clip.startTime) * scale;
@@ -291,6 +288,38 @@ const TracksCanvas = () => {
         ctx.beginPath();
         ctx.roundRect(startX, trackY, width, TRACK_HEIGHT[clip.type], cornerRadius);
         ctx.fill();
+
+        // 绘制文字
+        ctx.fillStyle = '#fff';
+        ctx.font = '16px sans-serif';
+        const textStartX = clip.startTime * scale - scrollLeft + 10;
+        const textStartY = trackY + TRACK_HEIGHT[TrackType.TEXT] / 2;
+        // 测量文字宽度
+        const text = clip.content || '';
+        const textWidth = ctx.measureText(text).width;
+        const maxWidth= Math.max(10, width - 20);
+        if (textWidth <= maxWidth) {
+            ctx.fillText(text, textStartX, textStartY);
+        } else {
+            // 文字宽度超过最大宽度，需要截断并添加省略号
+            let ellipsis = '...';
+            const ellipsisWidth = ctx.measureText(ellipsis).width;
+            // 计算可用于显示文字的最大宽度（扣除省略号宽度）
+            const availableWidth = maxWidth - ellipsisWidth;
+
+            // 寻找最大可显示的文字长度
+            let displayText = text;
+            let displayWidth = textWidth;
+
+            // 逐个字符减少，直到文字宽度小于可用宽度
+            while (displayWidth > availableWidth && displayText.length > 0) {
+                displayText = displayText.substring(0, displayText.length - 1);
+                displayWidth = ctx.measureText(displayText).width;
+            }
+
+            // 添加省略号并绘制
+            ctx.fillText(displayText + ellipsis, textStartX, textStartY);   
+        }
     }
 
     // 绘制贴图轨道

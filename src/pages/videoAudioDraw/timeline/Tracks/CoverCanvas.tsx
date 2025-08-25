@@ -55,6 +55,24 @@ const Tracks = () => {
                     const clip = track.clips[j];
                     const clipStartX = clip.startTime * scale - scrollLeft;
                     const clipEndX = clipStartX + (clip.endTime - clip.startTime) * scale;
+
+                    const preClip = j > 0 ? track.clips[j - 1] : null;
+                    const nextClip = j < track.clips.length - 1 ? track.clips[j + 1] : null;
+
+                    // 优先判断是否选中了片段
+                    if (selectedClipItem && (
+                        selectedClipItem.originTime.endTime > (clip.startTime - HANDLE_WIDTH / scale) && preClip && selectedClipItem.clipId === preClip.id || 
+                        selectedClipItem.originTime.startTime < (clip.endTime + HANDLE_WIDTH / scale) && nextClip && selectedClipItem.clipId === nextClip.id
+                    )) {
+                        if (selectedClipItem.originTime.endTime > (clip.startTime - HANDLE_WIDTH / scale) && preClip && selectedClipItem.clipId === preClip.id && mouseX >= clipStartX && mouseX <= clipStartX + HANDLE_WIDTH / 2) {
+                            // 选中了前一个片段的右侧手柄
+                            return { item: preClip, position: 'handle', handleType: 'right' };
+                        } else if (selectedClipItem.originTime.startTime < (clip.endTime + HANDLE_WIDTH / scale) && nextClip && selectedClipItem.clipId === nextClip.id && mouseX >= clipEndX - HANDLE_WIDTH / 2 && mouseX <= clipEndX) {
+                            // 选中了后一个片段的左侧手柄
+                            return { item: nextClip, position: 'handle', handleType: 'left' };
+                        }
+                    }
+
                     // 检查是否点击了片段本身
                     if (mouseX >= clipStartX - 10 && mouseX <= clipEndX + 10 && mouseY >= trackY && mouseY <= trackEndY) {
                         // 选中非手柄部分
@@ -87,6 +105,8 @@ const Tracks = () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         const mouseX = e.clientX - canvasRef.current!.getBoundingClientRect().left;
         const clickedClipData = checkMousePosition(e);
+
+        console.log('-aaa--', clickedClipData)
         if (clickedClipData) {
             const { item, position } = clickedClipData;
             const startX = item.startTime * scale - scrollLeft;
@@ -140,12 +160,12 @@ const Tracks = () => {
         if (!isClipping && !isDragging) {
             clickedClipData = checkMousePosition(e);
             if (clickedClipData) {
-            if (clickedClipData.position === 'handle' && clickedClipData.item.id === selectedClipItem?.clipId) {
-                // 选中手柄
-                updateCanvasCursor('ew-resize');
-            } else {
-                updateCanvasCursor('pointer');
-            }
+                if (clickedClipData.position === 'handle' && clickedClipData.item.id === selectedClipItem?.clipId) {
+                    // 选中手柄
+                    updateCanvasCursor('ew-resize');
+                } else {
+                    updateCanvasCursor('pointer');
+                }
             } else {
                 // 未选中
                 updateCanvasCursor('default');
@@ -217,10 +237,9 @@ const Tracks = () => {
                     if (clipIdx > -1) {
                         // 与同轨道的前后片段各比较
                         const nextClip = curTrack.clips.find(c => c.startTime >= curTrack.clips[clipIdx].endTime);
-                        const prevClip = curTrack.clips.find(c => c.endTime <= curTrack.clips[clipIdx].startTime);
                         curTrack.clips[clipIdx].endTime = Math.max(nextClip ?
                             Math.min(newEndTime, nextClip.startTime) : newEndTime, 
-                            (prevClip?.endTime || 0) + MIN_CLIP_WIDTH / scale  // 最小片段时长
+                            (curTrack.clips[clipIdx].startTime || 0) + MIN_CLIP_WIDTH / scale  // 最小片段时长
                         );
                     }
                 }
@@ -297,6 +316,22 @@ const Tracks = () => {
             originTracks[curTrackIdx].clips = clips;
         }
         setTracks(originTracks);
+        if (selectedClipItem && curTrack) {
+            const curClip = curTrack.clips.find(c => c.id === selectedClipItem.clipId);
+            if (curClip) {
+                 setSelectedClipItem({
+                    ...selectedClipItem,
+                    originTime: {
+                        startTime: curClip.startTime,
+                        endTime: curClip.endTime,
+                    }
+                })
+            } else {
+                setSelectedClipItem(null);
+            }
+        } else {
+            setSelectedClipItem(null);
+        }
     };
 
     const renderTracks = () => {
