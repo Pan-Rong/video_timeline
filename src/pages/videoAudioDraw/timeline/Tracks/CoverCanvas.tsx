@@ -1,10 +1,9 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { useRootStore } from '../../models';
-import { RULER_HEIGHT, TRACK_HEIGHT, TRACK_SPACING, HANDLE_WIDTH } from '../../models/constant';
+import { RULER_HEIGHT, TRACK_HEIGHT, TRACK_SPACING, HANDLE_WIDTH, MIN_CLIP_WIDTH } from '../../models/constant';
 
 import styles from './index.less';
 import { ITrack, IClipItem } from '../../types';
-
 
 let preHandleType: string = '';
 const Tracks = () => {
@@ -23,16 +22,10 @@ const Tracks = () => {
     } = useRootStore();
     const startY = 0;
     const [dragStartX, setDragStartX] = useState<number>(0);
-    const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
-    const [clipItems, setClipItems] = useState<IClipItem[]>(tracks.map((track) => ({
-            id: track.id,
-            trackIndex: track.trackIndex,
-            type: track.type,
-            startTime: track.startTime,
-            endTime: track.endTime,
-            color: track.color,
-            name: track.name,
-        })));
+    const [selectedClipItem, setSelectedClipItem] = useState<{
+        clipId: string,
+        trackId: string,
+    } | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [isClipping, setIsClipping] = useState(false);
     const animationRef = useRef<number>();
@@ -41,47 +34,38 @@ const Tracks = () => {
        setIsClippingOrDragging(isDragging || isClipping);
     }, [isDragging, isClipping])
 
-    useEffect(() => {
-        setClipItems(tracks.map((track) => ({
-            id: track.id,
-            trackIndex: track.trackIndex,
-            type: track.type,
-            startTime: track.startTime,
-            endTime: track.endTime,
-            color: track.color,
-            name: track.name,
-        })));
-    }, [tracks])
-
     const checkMousePosition = (e: React.MouseEvent) => {
         e.preventDefault();
         const mouseX = e.clientX - canvasRef.current!.getBoundingClientRect().left;
         const mouseY = e.clientY - canvasRef.current!.getBoundingClientRect().top;
-
-         // 检查是否点击了视频片段
-        for (let i = 0; i < clipItems.length; i++) {
-            const clip = clipItems[i];
-
-            const startX = clip.startTime * scale - scrollLeft;
-            const endX = startX + (clip.endTime - clip.startTime) * scale;
-            const trackY = startY + clip.trackIndex * (TRACK_HEIGHT[clip.type] + TRACK_SPACING);
-            const trackEndY = trackY + TRACK_HEIGHT[clip.type];
-
-            // 检查是否点击了片段本身
+        // 检查是否点击了视频片段
+        for (let i = 0; i < tracks.length; i++) {
+            const track = tracks[i];
+            const startX = track.startTime * scale - scrollLeft;
+            const endX = startX + (track.endTime - track.startTime) * scale;
+            const trackY = startY + track.trackIndex * (TRACK_HEIGHT[track.type] + TRACK_SPACING);
+            const trackEndY = trackY + TRACK_HEIGHT[track.type];
+            // 检查是否点击了该轨道
             if (mouseX >= startX - 10 && mouseX <= endX + 10 && mouseY >= trackY && mouseY <= trackEndY) {
-                // 选中非手柄部分
-                if (mouseX >= startX + HANDLE_WIDTH  && mouseX <= endX - HANDLE_WIDTH) {
-                    // 选中片段
-                    return { item: clip, position: 'clip' };
-
+                for (let j = 0; j < track.clips.length; j++) {
+                    const clip = track.clips[j];
+                    const clipStartX = clip.startTime * scale - scrollLeft;
+                    const clipEndX = clipStartX + (clip.endTime - clip.startTime) * scale;
+                    // 检查是否点击了片段本身
+                    if (mouseX >= clipStartX - 10 && mouseX <= clipEndX + 10 && mouseY >= trackY && mouseY <= trackEndY) {
+                        // 选中非手柄部分
+                        if (mouseX >= clipStartX + HANDLE_WIDTH  && mouseX <= clipEndX - HANDLE_WIDTH) {
+                            // 选中片段
+                            return { item: clip, position: 'clip' };
+                        }
+                        let handleType = 'right';
+                        // 选中左侧手柄
+                        if (mouseX >= clipStartX - 10 && mouseX <= clipStartX + HANDLE_WIDTH) {
+                            handleType = 'left';
+                        }
+                        return { item: clip, position: 'handle', handleType };
+                    }
                 }
-                let handleType = 'right';
-                // 选中左侧手柄
-                if (mouseX >= startX - 10 && mouseX <= startX + HANDLE_WIDTH) {
-                    handleType = 'left';
-                }
-            
-                return { item: clip, position: 'handle', handleType };
             }
         }
         return null;
@@ -108,11 +92,14 @@ const Tracks = () => {
             } else if (position === 'handle') {
                 setIsClipping(true);
             }
-            setSelectedClipId(item.id);
+            setSelectedClipItem({
+                clipId: item.id,
+                trackId: item.parentId,
+            });
             drawClip(ctx, item);
         } else {
             // 没有选中
-            setSelectedClipId(null);
+            setSelectedClipItem(null);
             setIsClipping(false);
             setIsDragging(false);
         }
@@ -126,7 +113,7 @@ const Tracks = () => {
         animationRef.current = requestAnimationFrame(() => {
             const canvas = canvasRef.current;
             if (canvas) {
-            canvas.style.cursor = cursor;
+                canvas.style.cursor = cursor;
             }
         });
     }, []);
@@ -141,7 +128,7 @@ const Tracks = () => {
         // 只处理hover 效果
         const clickedClipData = checkMousePosition(e);
         if (clickedClipData) {
-            if (clickedClipData.position === 'handle' && clickedClipData.item.id === selectedClipId) {
+            if (clickedClipData.position === 'handle' && clickedClipData.item.id === selectedClipItem?.clipId) {
                 // 选中手柄
                 updateCanvasCursor('ew-resize');
             } else {
@@ -151,59 +138,75 @@ const Tracks = () => {
             // 未选中
             updateCanvasCursor('default');
         }
-        console.log('isDragging', isDragging, 'clickedClipData', !!clickedClipData, 'isClipping', isClipping)
         if ((!isDragging && !isClipping)) {
             return;
         }
         if (isDragging) {
             updateCanvasCursor('move');
         }
-        // 处理视频片段拖拽或调整
-        const clip = clickedClipData?.item || clipItems.find(c => c.id === selectedClipId);
+        // 处理片段拖拽或调整
+        const clip = clickedClipData?.item || tracks.find(t => t.id === selectedClipItem?.trackId)?.clips.find((c) => c.id === selectedClipItem?.clipId);
         const handleType = clickedClipData?.handleType || preHandleType;
         if (isDragging && clip) {
-            // 确定当前鼠标所在轨道
             const newTrackIndex = Math.max(0, Math.min(tracks.length - 1, Math.floor((mouseY - startY) / (TRACK_HEIGHT[clip.type] + TRACK_SPACING))));
+            // 确定当前鼠标所在轨道
             const newStartX = mouseX - dragStartX;
-            const newStartTime = Math.max(0, Math.min(duration - (clip.endTime - clip.startTime), newStartX / scale + scrollLeft / scale));
-            const newEndTime = newStartTime + (clip.endTime - clip.startTime);
-
-            // requestAnimationFrame(() => {
-                const originTracks = tracks.slice(0);
-                const len = originTracks.length;
-                for (let i = 0; i < len; i ++) {
-                    if (originTracks[i].id === clip.id && originTracks[i].trackIndex === clip.trackIndex) {
-                        originTracks[i].startTime = newStartTime;
-                        originTracks[i].endTime = newEndTime;
-                        originTracks[i].trackIndex = newTrackIndex;
-                    }
+            // 处理片段拖拽
+            const originTracks = tracks.slice(0);
+            const curTrack = originTracks.find(t => t.id === clip.parentId);
+            const clipDuration = clip.endTime - clip.startTime;
+            if (curTrack && clip.trackIndex === newTrackIndex) {
+                const clipIdx = curTrack.clips.findIndex(c => c.id === clip.id);
+                if (clipIdx > -1) {
+                    const newStartTime = Math.max(0, Math.min(duration - clipDuration, newStartX / scale + scrollLeft / scale));
+                    const newEndTime = newStartTime + clipDuration;
+                    curTrack.clips[clipIdx].startTime = newStartTime;
+                    curTrack.clips[clipIdx].endTime = newEndTime;
+                    curTrack.clips[clipIdx].trackIndex = newTrackIndex;
                 }
-                setTracks(originTracks);
-            // });
-        } else if (isClipping && clip && clip.id === selectedClipId) {
-            if (handleType === 'left') {
+            }
+            setTracks(originTracks);
+        } else if (isClipping && clip && clip.id === selectedClipItem?.clipId) {
+            const newTrackIndex = Math.max(0, Math.min(tracks.length - 1, Math.floor((mouseY - startY) / (TRACK_HEIGHT[clip.type] + TRACK_SPACING))));
+
+            if (handleType === 'left' && clip.trackIndex === newTrackIndex) {
                 const newStartX = mouseX;
                 const newStartTime = Math.max(0, Math.min(clip.endTime - 0.1, newStartX / scale + scrollLeft / scale));
+                // 处理片段拖拽
                 const originTracks = tracks.slice(0);
-                const len = originTracks.length;
-                for (let i = 0; i < len; i ++) {
-                    if (originTracks[i].id === clip.id) {
-                        // 只与同轨道的前一个片段比较
-                        const prevClip = originTracks.find(c => c.trackIndex === clip.trackIndex && c.endTime <= originTracks[i].startTime);
-                        originTracks[i].startTime = prevClip ? Math.max(newStartTime, prevClip.endTime) : newStartTime;
+                const curTrack = originTracks.find(t => t.id === clip.parentId);
+                if (curTrack) {
+                    // 只与同轨道的前一个片段比较
+                    const clipIdx = curTrack.clips.findIndex(c => c.id === clip.id && c.trackIndex === clip.trackIndex);
+   
+                    if (clipIdx > -1) {
+                        // 与同轨道的前一个片段比较
+                        const prevClip = curTrack.clips.find(c => c.endTime <= curTrack.clips[clipIdx].startTime);
+                        curTrack.clips[clipIdx].startTime = Math.min(
+                            prevClip ? Math.max(newStartTime, prevClip.endTime) : newStartTime,
+                            clip.endTime - MIN_CLIP_WIDTH / scale
+                        );
                     }
                 }
                 setTracks(originTracks);
-            } else if (handleType === 'right') {
+            } else if (handleType === 'right' && clip.trackIndex === newTrackIndex) {
                 const newEndX = mouseX;
                 const newEndTime = Math.max(clip.startTime + 0.1, Math.min(duration, newEndX / scale + scrollLeft / scale));
+                // 处理片段拖拽
                 const originTracks = tracks.slice(0);
-                const len = originTracks.length;
-                for (let i = 0; i < len; i ++) {
-                    if (originTracks[i].id === clip.id) {
-                        // 只与同轨道的后一个片段比较
-                        const nextClip = originTracks.find(c => c.trackIndex === clip.trackIndex && c.startTime >= originTracks[i].endTime);
-                        originTracks[i].endTime = nextClip ? Math.min(newEndTime, nextClip.startTime) : newEndTime;
+                const curTrackIdx = originTracks.findIndex(t => t.id === clip.parentId);
+                if (curTrackIdx > -1) {
+                    const curTrack = originTracks[curTrackIdx];
+                    // 只与同轨道的前一个片段比较
+                    const clipIdx = curTrack.clips.findIndex(c => c.id === clip.id && c.trackIndex === clip.trackIndex); 
+                    if (clipIdx > -1) {
+                        // 与同轨道的前后片段各比较
+                        const nextClip = curTrack.clips.find(c => c.startTime >= curTrack.clips[clipIdx].endTime);
+                        const prevClip = curTrack.clips.find(c => c.endTime <= curTrack.clips[clipIdx].startTime);
+                        curTrack.clips[clipIdx].endTime = Math.max(nextClip ?
+                            Math.min(newEndTime, nextClip.startTime) : newEndTime, 
+                            (prevClip?.endTime || 0) + MIN_CLIP_WIDTH / scale  // 最小片段时长
+                        );
                     }
                 }
                 setTracks(originTracks);
@@ -267,8 +270,10 @@ const Tracks = () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         // drawTrack(ctx);
-       if (selectedClipId) {
-            const clip = clipItems.find(c => c.id === selectedClipId);
+        console.log('-----selectedClipItem---', selectedClipItem)
+        if (selectedClipItem) {
+        
+            const clip = tracks.find(t => t.id === selectedClipItem.trackId)?.clips.find(c => c.id === selectedClipItem.clipId);
             if (clip) {
                 drawClip(ctx, clip);
             }
@@ -278,14 +283,14 @@ const Tracks = () => {
     const drawClip = (ctx: CanvasRenderingContext2D, clip: IClipItem) => {
         const startX = clip.startTime * scale - scrollLeft;
         const endX = clip.endTime * scale - scrollLeft;
-        const trackY = clip.trackIndex * (TRACK_HEIGHT[clip.type] + TRACK_SPACING) + startY;
+        const trackY = clip.trackIndex * (TRACK_HEIGHT[clip.type] + TRACK_SPACING) + startY - 2;
 
         // 绘制选中效果
         const cornerRadius = 6; // 设置6px圆角
         // 绘制带圆角的片段边框
         ctx.strokeStyle = 'rgba(29, 43, 240, 0.9)';
         ctx.fillStyle = 'rgba(29, 43, 240, 0.36)';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.roundRect(startX, trackY, (endX - startX), TRACK_HEIGHT[clip.type], cornerRadius);
         ctx.fill();
@@ -336,11 +341,11 @@ const Tracks = () => {
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
-        return () => {
+        return () => {  
             window.removeEventListener('resize', resizeCanvas);
         };
 
-    }, [canvasRef.current, scale, scrollLeft, clipItems, selectedClipId]);
+    }, [canvasRef.current, scale, scrollLeft, tracks, selectedClipItem]);
 
 
     return (

@@ -1,7 +1,7 @@
 import React, { Fragment, useEffect, useRef, useState } from 'react';
 import Ruler from './Ruler';
 import styles from './index.new.less';
-import { ITrack } from '../types';
+import { IClipItem, ITrack } from '../types';
 import Tracks from './Tracks';
 import { Button } from 'antd';
 import { useRootStore } from '../models';
@@ -43,6 +43,15 @@ const Timeline: React.FC<{ audioFile: File; }> = ({ audioFile })  => {
             trackIndex: 0,
             startTime: 0,
             endTime: duration,
+            clips: [{
+                parentId: '_1_',
+                id: 'video-clip-default',
+                type: TrackType.VIDEO,
+                startTime: 0,
+                endTime: duration,
+                trackIndex: 0,
+                height: TRACK_HEIGHT[TrackType.VIDEO],
+            }],
         }
     ]);
     const [audioTracks, setAudioTracks] = useState<ITrack[]>([]);
@@ -128,8 +137,9 @@ const Timeline: React.FC<{ audioFile: File; }> = ({ audioFile })  => {
                 setWaveformData(amplitudeArray);
                 // 创建静态波形数据的副本
                 setStaticWaveformData(new Uint8Array(amplitudeArray));
+                const audioTrackId = `audio-${Date.now()}`;
                 const newAudioTrack: ITrack = {
-                        id: `audio-${Date.now()}`,
+                        id: audioTrackId,
                         startTime: 0,
                         endTime: buffer.duration,
                         color: '#9333ea', 
@@ -137,9 +147,18 @@ const Timeline: React.FC<{ audioFile: File; }> = ({ audioFile })  => {
                         type: TrackType.AUDIO, 
                         trackIndex: 1,
                         height: TRACK_HEIGHT[TrackType.AUDIO],
+                        clips: [{
+                            parentId: audioTrackId,
+                            id: 'audio-clip-default',
+                            type: TrackType.AUDIO,
+                            startTime: 0,
+                            endTime: buffer.duration,
+                            trackIndex: 1,
+                            height: TRACK_HEIGHT[TrackType.AUDIO],
+                        }],
                     };
                     
-                 setAudioTracks([newAudioTrack]);
+                setAudioTracks([newAudioTrack]);
             })
             .catch((error) => {
                 console.error('音频解码错误:', error);
@@ -201,6 +220,56 @@ const Timeline: React.FC<{ audioFile: File; }> = ({ audioFile })  => {
                     <span>{`视频时长：${duration}秒`}</span>
                 </div>
                 <div className={styles.tool}>
+                    <Button type='primary' 
+                        onClick={() => {
+                            // todo
+                            const textTrackIdx = tracks.findIndex((track) => track.type === TrackType.TEXT);
+                            const defaultDuration = 2; // 默认2s；
+                            if (textTrackIdx === -1) {
+                                const textTrackId = `text-track-${Date.now()}`;
+                                const newClip: IClipItem = {
+                                    parentId: textTrackId,
+                                    id: `text-${Date.now()}`,
+                                    type: TrackType.TEXT,
+                                    startTime: 0,
+                                    endTime: defaultDuration,
+                                    trackIndex: tracks.length,
+                                    content: '添加文字',
+                                };
+                                setTracks([...tracks, {
+                                    id: textTrackId,
+                                    type: TrackType.TEXT,
+                                    height: TRACK_HEIGHT[TrackType.TEXT],
+                                    name: '文字轨道',
+                                    trackIndex: tracks.length,
+                                    clips: [newClip],
+                                    startTime: 0,
+                                    endTime: duration,
+                                }]);
+                            } else {
+                                const textTrackId = tracks[textTrackIdx].id;
+                                const clipLen = tracks[textTrackIdx].clips.length;
+                                const newClip: IClipItem = {
+                                    parentId: textTrackId,
+                                    id: `text-${Date.now()}`,
+                                    type: TrackType.TEXT,
+                                    startTime: tracks[textTrackIdx].clips[clipLen - 1].endTime,
+                                    endTime: tracks[textTrackIdx].clips[clipLen - 1].endTime + defaultDuration,
+                                    trackIndex: tracks[textTrackIdx].trackIndex,
+                                    content: '添加文字',
+                                };
+
+                                setTracks(tracks.map((track) => {
+                                    if (track.id === textTrackId) {
+                                        return {
+                                            ...track,
+                                            clips: [...(track.clips || []), newClip],
+                                        }
+                                    }
+                                    return track;
+                                }))
+                            }
+                        }} >添加文字</Button>
                     <Button type='primary' 
                         onClick={() => {
                             // todo

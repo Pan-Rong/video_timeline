@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
 import { useRootStore } from '../../models';
 import { TrackType, TRACK_HEIGHT, THUMBNAIL_WIDTH, TRACK_SPACING } from '../../models/constant';
-import { ITrack, IVideoThumbnail } from '../../types';
+import { ITrack, IVideoThumbnail, IClipItem } from '../../types';
 import { useAudioStore } from '../../models/audio';
 
 
@@ -18,7 +18,6 @@ const TracksCanvas = () => {
     const { 
         audioBuffer,
         staticWaveformData,
-        setStaticWaveformData   // 存储静态波形数据
     } = useAudioStore();
 
     useEffect(() => {
@@ -79,20 +78,8 @@ const TracksCanvas = () => {
     }, [duration, scale, canvasRef.current]);
 
     // 绘制视频轨道
-    const drawVideoTrack = (ctx: CanvasRenderingContext2D, track: ITrack) => {
-        const trackY = startY + track.trackIndex * (TRACK_HEIGHT[TrackType.VIDEO] + TRACK_SPACING);
-        ctx.fillStyle = '#2d2d2d';
-        ctx.fillRect(0, trackY, canvasRef.current!.width, TRACK_HEIGHT[TrackType.VIDEO]);
-
-        const clip = {
-            startTime: track.startTime,
-            endTime: track.endTime,
-        }
-
-        ctx.fillStyle = 'rgba(7, 111, 247, 0.2)';
-        ctx.beginPath();
-        ctx.roundRect(clip.startTime * scale - scrollLeft, trackY, Math.min(canvasRef.current!.width, duration * scale), TRACK_HEIGHT[TrackType.VIDEO], [0, cornerRadius, cornerRadius, 0]);
-        ctx.fill();
+    const drawVideoClip = (ctx: CanvasRenderingContext2D, clip: IClipItem) => {
+        const trackY = startY + clip.trackIndex * (TRACK_HEIGHT[clip.type] + TRACK_SPACING);
    
         const startX = clip.startTime * scale - scrollLeft;
         const width = (clip.endTime - clip.startTime) * scale;
@@ -173,27 +160,19 @@ const TracksCanvas = () => {
     }
 
     // 绘制音频波形
-    const drawAudioWaveTrack = (ctx: CanvasRenderingContext2D, track: ITrack) => {
-        const trackY = startY + track.trackIndex * (TRACK_HEIGHT[TrackType.AUDIO] + TRACK_SPACING);
-        // 绘制音频轨道背景
-        ctx.fillStyle = '#2d2d2d';
-        ctx.fillRect(0, trackY, canvasRef.current!.width, TRACK_HEIGHT[TrackType.AUDIO]);
+    const drawAudioWaveClip = (ctx: CanvasRenderingContext2D, clip: IClipItem) => {
+        const trackY = startY + clip.trackIndex * (TRACK_HEIGHT[clip.type] + TRACK_SPACING);
 
         // 绘制波形
-        const startX = track.startTime * scale - scrollLeft;
-        const endX = track.endTime * scale - scrollLeft;
+        const startX = clip.startTime * scale - scrollLeft;
+        const endX = clip.endTime * scale - scrollLeft;
         const width = endX - startX;
         if (!audioBuffer || !staticWaveformData) return;
 
-        ctx.fillStyle = 'rgba(7, 111, 247, 0.2)';
-        ctx.beginPath();
-        ctx.roundRect(startX, trackY, Math.min(canvasRef.current!.width, duration * scale), TRACK_HEIGHT[TrackType.AUDIO], [0, cornerRadius, cornerRadius, 0]);
-        ctx.fill();
-   
         // 仅绘制可见部分
         if (canvasRef.current && (startX + width > 0 && startX < canvasRef.current!.width)) {
-            const startIdx = Math.floor(Math.max(track.startTime, startX / scale) / duration * staticWaveformData.length);
-            const endIdx = Math.ceil( Math.min(track.endTime, canvasRef.current.width / scale) / duration * staticWaveformData.length);
+            const startIdx = Math.floor(Math.max(clip.startTime, startX / scale) / duration * staticWaveformData.length);
+            const endIdx = Math.ceil( Math.min(clip.endTime, canvasRef.current.width / scale) / duration * staticWaveformData.length);
             const amplitudeArray = staticWaveformData.slice(startIdx, endIdx);
             // 绘制静态波形
             drawWaveform({ startX, ctx, width, trackY, amplitudeArray, progress: 0 });
@@ -298,6 +277,29 @@ const TracksCanvas = () => {
         ctx.stroke();
     }
 
+    // 绘制文字片段
+    const drawTextClip = (ctx: CanvasRenderingContext2D, clip: IClipItem) => {
+        const trackY = startY + clip.trackIndex * (TRACK_HEIGHT[clip.type] + TRACK_SPACING);
+        console.log('----trackY-', trackY)    
+        ctx.fillStyle = '#fff';
+        ctx.font = '16px sans-serif';
+        // ctx.fillText(clip.content || '', clip.startTime * scale - scrollLeft, trackY + TRACK_HEIGHT[TrackType.TEXT] / 2);
+        // 绘制剪辑的时间轴,带圆角的片段边框
+        const cornerRadius = 6; // 设置6px圆角
+        const startX = clip.startTime * scale - scrollLeft;
+        const width = (clip.endTime - clip.startTime) * scale;
+        ctx.fillStyle = 'rgba(9, 178, 245, 0.36)';
+        ctx.beginPath();
+        ctx.roundRect(startX, trackY, width, TRACK_HEIGHT[clip.type], cornerRadius);
+        ctx.fill();
+    }
+
+    // 绘制贴图轨道
+    const drawImageTrack = (ctx: CanvasRenderingContext2D, track: ITrack) => {
+        const trackY = startY + track.trackIndex * (TRACK_HEIGHT[TrackType.IMAGE] + TRACK_SPACING);
+        ctx.fillStyle = '#2d2d2d';
+        ctx.fillRect(0, trackY, canvasRef.current!.width, TRACK_HEIGHT[TrackType.IMAGE]);
+    }
 
     const renderTracks = () => {
         const canvas = canvasRef.current;
@@ -313,13 +315,39 @@ const TracksCanvas = () => {
         ctx.fillStyle = '#1a1a1a';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // drawTrack(ctx);
-        // 绘制视频轨道
+        // 绘制轨道
         tracks.forEach((track, index) => {
+            // 轨道背景
+            const trackY = startY + track.trackIndex * (TRACK_HEIGHT[track.type] + TRACK_SPACING);
+            ctx.fillStyle = '#2d2d2d';
+            ctx.fillRect(0, trackY, canvasRef.current!.width, TRACK_HEIGHT[track.type]);
+
+            // 当前轨道中总时长的背景
+            ctx.fillStyle = 'rgba(7, 111, 247, 0.2)';
+            ctx.beginPath();
+            ctx.roundRect(track.startTime * scale - scrollLeft, trackY, Math.min(canvasRef.current!.width, duration * scale), TRACK_HEIGHT[track.type], [0, cornerRadius, cornerRadius, 0]);
+            ctx.fill();
+
             if (track.type === TrackType.VIDEO) {
-                drawVideoTrack(ctx, track);
+                if (track.clips) {
+                    track.clips.forEach(clip => {
+                        drawVideoClip(ctx, clip);
+                    })
+                }
             } else if (track.type === TrackType.AUDIO) {
-                drawAudioWaveTrack(ctx, track);
+                 if (track.clips) {
+                    track.clips.forEach(clip => {
+                        drawAudioWaveClip(ctx, clip);
+                    })
+                }
+            } else if (track.type === TrackType.TEXT) {
+                if (track.clips) {
+                    track.clips.forEach(clip => {
+                        drawTextClip(ctx, clip);
+                    })
+                }
+            } else if (track.type === TrackType.IMAGE) {
+                drawImageTrack(ctx, track);
             }
         })
     }

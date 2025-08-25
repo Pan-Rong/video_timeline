@@ -55,6 +55,7 @@ export interface IVideoThumbnail extends IModel {
 }
 
 export interface IClipItem extends IModel {
+    parentId: string;
     id: string;
     type: ITrackType;
     startTime: number;
@@ -62,6 +63,7 @@ export interface IClipItem extends IModel {
     trackIndex: number;
     isDragging?: boolean;
     isActive?: boolean;
+    content?: string;
     resizeHandle?: 'left' | 'right' | '';
 }
 
@@ -71,7 +73,6 @@ export interface ITrack {
     height: number;
     name: string;
     icon?: ReactNode | string;   
-    active?: boolean;
     trackIndex: number; // 添加轨道索引
     isDragging?: boolean;
     type: ITrackType;
@@ -79,6 +80,7 @@ export interface ITrack {
     audioBuffer?: AudioBuffer;
     startTime: number;
     endTime: number;
+    clips: IClipItem[];
 }
 
 type ITrackType = TrackType;
