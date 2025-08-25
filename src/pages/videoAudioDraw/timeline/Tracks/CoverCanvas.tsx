@@ -25,6 +25,10 @@ const Tracks = () => {
     const [selectedClipItem, setSelectedClipItem] = useState<{
         clipId: string,
         trackId: string,
+        originTime: {
+            startTime: number,
+            endTime: number
+        }
     } | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [isClipping, setIsClipping] = useState(false);
@@ -85,16 +89,21 @@ const Tracks = () => {
         const clickedClipData = checkMousePosition(e);
         if (clickedClipData) {
             const { item, position } = clickedClipData;
+            const startX = item.startTime * scale - scrollLeft;
             if (position === 'clip') {
-                const startX = item.startTime * scale - scrollLeft;
                 setIsDragging(true);
                 setDragStartX(mouseX - startX);
             } else if (position === 'handle') {
+                preHandleType = clickedClipData.handleType || '';
                 setIsClipping(true);
             }
             setSelectedClipItem({
                 clipId: item.id,
                 trackId: item.parentId,
+                originTime: { // 原始位置,用于拖拽后如果有重叠且不能前后调整时还原到最初用
+                    startTime: item.startTime,
+                    endTime: item.endTime 
+                }
             });
             drawClip(ctx, item);
         } else {
@@ -126,27 +135,32 @@ const Tracks = () => {
             return
         }
         // 只处理hover 效果
-        const clickedClipData = checkMousePosition(e);
-        if (clickedClipData) {
+        let clickedClipData = null;
+        
+        if (!isClipping && !isDragging) {
+            clickedClipData = checkMousePosition(e);
+            if (clickedClipData) {
             if (clickedClipData.position === 'handle' && clickedClipData.item.id === selectedClipItem?.clipId) {
                 // 选中手柄
                 updateCanvasCursor('ew-resize');
             } else {
                 updateCanvasCursor('pointer');
             }
-        } else {
-            // 未选中
-            updateCanvasCursor('default');
-        }
-        if ((!isDragging && !isClipping)) {
+            } else {
+                // 未选中
+                updateCanvasCursor('default');
+            }
             return;
         }
+        
         if (isDragging) {
             updateCanvasCursor('move');
+        } else if (isClipping) {
+            updateCanvasCursor('ew-resize');
         }
         // 处理片段拖拽或调整
-        const clip = clickedClipData?.item || tracks.find(t => t.id === selectedClipItem?.trackId)?.clips.find((c) => c.id === selectedClipItem?.clipId);
-        const handleType = clickedClipData?.handleType || preHandleType;
+        const clip = tracks.find(t => t.id === selectedClipItem?.trackId)?.clips.find((c) => c.id === selectedClipItem?.clipId);
+        const handleType = preHandleType;
         if (isDragging && clip) {
             const newTrackIndex = Math.max(0, Math.min(tracks.length - 1, Math.floor((mouseY - startY) / (TRACK_HEIGHT[clip.type] + TRACK_SPACING))));
             // 确定当前鼠标所在轨道
@@ -157,6 +171,7 @@ const Tracks = () => {
             const clipDuration = clip.endTime - clip.startTime;
             if (curTrack && clip.trackIndex === newTrackIndex) {
                 const clipIdx = curTrack.clips.findIndex(c => c.id === clip.id);
+
                 if (clipIdx > -1) {
                     const newStartTime = Math.max(0, Math.min(duration - clipDuration, newStartX / scale + scrollLeft / scale));
                     const newEndTime = newStartTime + clipDuration;
@@ -217,46 +232,72 @@ const Tracks = () => {
 
     // 处理拖拽结束
     const handleDragEnd = () => {
+        const _isDragging = isDragging;
         setIsDragging(false);
         setIsClipping(false);
         preHandleType = '';
-
         updateCanvasCursor('default');
+
         // 拖拽结束后，确保每条轨道上的片段不重叠
-      
-        // setClipItems((clips: IClipItem[]) => {
-        // // 按轨道和startTime排序所有片段
-        //     const sortedClips = [...clips].sort((a, b) => {
-        //         if (a.trackIndex !== b.trackIndex) {
-        //         return a.trackIndex - b.trackIndex;
-        //         }
-        //         return a.startTime - b.startTime;
-        //     });
-        //     const adjustedClips = [...sortedClips];
+        const originTracks = tracks.slice(0);
+        const curTrackIdx = originTracks.findIndex(t => t.id === selectedClipItem?.trackId);
+        const curTrack = originTracks[curTrackIdx];
+        if (curTrack && selectedClipItem && _isDragging) {
+            const clips = curTrack.clips.slice(0).sort((a, b) => a.startTime - b.startTime);
+            const curClip = clips.find(c => c.id === selectedClipItem.clipId);
 
-        //     // 检查并调整每条轨道上的重叠
-        //     for (let i = 1; i < adjustedClips.length; i++) {
-        //         const currentClip = adjustedClips[i];
-        //         const prevClip = adjustedClips[i - 1];
+            if (curClip) {
+                // 先判断是否有覆盖其他片段
+                const coverClip = clips.find((c) => c.id !== curClip.id && c.startTime >= curClip.startTime && c.endTime <= curClip.endTime);
+                if (coverClip) {
+                    // 返回原位置
+                    curClip.startTime = selectedClipItem.originTime.startTime;
+                    curClip.endTime = selectedClipItem.originTime.endTime;
+                } else {
+                    // 查看当前片段是否与前一个片段重叠，如果重叠部分超过50%，且前一个片段的前面空间足够的话，则放前一个片段的前面； 空间不够的话，则返回原位置；
+                    const overlapIdx = clips.findIndex(c => c.id !== curClip.id && c.startTime <= curClip.endTime && c.endTime >= curClip.startTime);
+                    if (overlapIdx > -1) {
+                        const overlapClip = clips[overlapIdx];
+                        const curClipWidth = curClip.endTime - curClip.startTime;
+                        // 表示有重叠
+                        if (overlapClip.startTime <= curClip.startTime && overlapClip.endTime >= curClip.endTime) {
+                            // 全覆盖、则返回原位置
+                            curClip.startTime = selectedClipItem.originTime.startTime;
+                            curClip.endTime = selectedClipItem.originTime.endTime;
+                        } else {
+                            if (curClip.startTime > overlapClip.startTime) {
+                                // 表示当前片段在重叠片段的后面; 判断前一个片段后的空间是否足够
+                                const nextClip = overlapIdx + 2 < clips.length ? clips[overlapIdx + 2] : null;
+                                if (nextClip && (nextClip.startTime - overlapClip.endTime) >= curClipWidth || !nextClip && (duration - overlapClip.endTime) >= curClipWidth) {
+                                    // 后一个片段后的空间足够
+                                    curClip.startTime = overlapClip.endTime;
+                                    curClip.endTime = curClip.startTime + curClipWidth;
+                                } else {
+                                    // 返回原位置
+                                    curClip.startTime = selectedClipItem.originTime.startTime;
+                                    curClip.endTime = selectedClipItem.originTime.endTime;
+                                }
 
-        //         // 只检查同轨道的片段
-        //         if (currentClip.trackIndex === prevClip.trackIndex) {
-        //         // 如果当前片段与前一个片段重叠
-        //         if (currentClip.startTime < prevClip.endTime) {
-        //             // 调整当前片段的startTime到前一个片段的endTime
-        //             const duration = currentClip.endTime - currentClip.startTime;
-        //             adjustedClips[i] = {
-        //             ...currentClip,
-        //             startTime: prevClip.endTime,
-        //             endTime: prevClip.endTime + duration
-        //             };
-        //         }
-        //         }
-        //     }
-
-        //     // 重置拖拽状态
-        //     return adjustedClips;
-        // });
+                            } else {
+                                // 表示当前片段在重叠片段的前面; 判断前一个片段前的空间是否足够
+                                const pprevClip = overlapIdx > 0 ? clips[overlapIdx - 1] : null;
+                                if (pprevClip && (overlapClip.startTime - pprevClip.endTime) >= curClipWidth || !pprevClip && overlapClip.startTime >= curClipWidth) {
+                                    // 前一个片段前的空间足够
+                                    curClip.endTime = overlapClip.startTime;
+                                    curClip.startTime = curClip.endTime - curClipWidth;
+                                } else {
+                                    // 返回原位置
+                                    curClip.startTime = selectedClipItem.originTime.startTime;
+                                    curClip.endTime = selectedClipItem.originTime.endTime;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            originTracks[curTrackIdx].clips = clips;
+        }
+        setTracks(originTracks);
     };
 
     const renderTracks = () => {
@@ -269,10 +310,7 @@ const Tracks = () => {
         // 清除画布
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // drawTrack(ctx);
-        console.log('-----selectedClipItem---', selectedClipItem)
         if (selectedClipItem) {
-        
             const clip = tracks.find(t => t.id === selectedClipItem.trackId)?.clips.find(c => c.id === selectedClipItem.clipId);
             if (clip) {
                 drawClip(ctx, clip);
@@ -283,7 +321,7 @@ const Tracks = () => {
     const drawClip = (ctx: CanvasRenderingContext2D, clip: IClipItem) => {
         const startX = clip.startTime * scale - scrollLeft;
         const endX = clip.endTime * scale - scrollLeft;
-        const trackY = clip.trackIndex * (TRACK_HEIGHT[clip.type] + TRACK_SPACING) + startY - 2;
+        const trackY = clip.trackIndex * (TRACK_HEIGHT[clip.type] + TRACK_SPACING - 1) + startY;
 
         // 绘制选中效果
         const cornerRadius = 6; // 设置6px圆角
@@ -313,7 +351,6 @@ const Tracks = () => {
         ctx.roundRect(endX - handleWidth + 5, handleY, handleWidth, handleHeight, [0, cornerRadius, cornerRadius, 0]);
         ctx.fill();
     }
-
 
     // 在组件中添加useEffect钩子来设置Canvas尺寸
     useEffect(() => {

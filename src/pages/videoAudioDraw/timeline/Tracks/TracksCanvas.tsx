@@ -279,11 +279,10 @@ const TracksCanvas = () => {
 
     // 绘制文字片段
     const drawTextClip = (ctx: CanvasRenderingContext2D, clip: IClipItem) => {
-        const trackY = startY + clip.trackIndex * (TRACK_HEIGHT[clip.type] + TRACK_SPACING);
-        console.log('----trackY-', trackY)    
+        const trackY = startY + clip.trackIndex * (TRACK_HEIGHT[clip.type] + TRACK_SPACING);  
         ctx.fillStyle = '#fff';
         ctx.font = '16px sans-serif';
-        // ctx.fillText(clip.content || '', clip.startTime * scale - scrollLeft, trackY + TRACK_HEIGHT[TrackType.TEXT] / 2);
+        ctx.fillText(clip.content || '', clip.startTime * scale - scrollLeft + 10, trackY + TRACK_HEIGHT[TrackType.TEXT] / 2);
         // 绘制剪辑的时间轴,带圆角的片段边框
         const cornerRadius = 6; // 设置6px圆角
         const startX = clip.startTime * scale - scrollLeft;
@@ -323,7 +322,7 @@ const TracksCanvas = () => {
             ctx.fillRect(0, trackY, canvasRef.current!.width, TRACK_HEIGHT[track.type]);
 
             // 当前轨道中总时长的背景
-            ctx.fillStyle = 'rgba(7, 111, 247, 0.2)';
+            ctx.fillStyle = 'rgba(98, 138, 4, 0.08)';
             ctx.beginPath();
             ctx.roundRect(track.startTime * scale - scrollLeft, trackY, Math.min(canvasRef.current!.width, duration * scale), TRACK_HEIGHT[track.type], [0, cornerRadius, cornerRadius, 0]);
             ctx.fill();

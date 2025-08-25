@@ -251,12 +251,12 @@ const Timeline: React.FC<{ audioFile: File; }> = ({ audioFile })  => {
                                 const clipLen = tracks[textTrackIdx].clips.length;
                                 const newClip: IClipItem = {
                                     parentId: textTrackId,
-                                    id: `text-${Date.now()}`,
+                                    id: `text-${Date.now()}_${clipLen}`,
                                     type: TrackType.TEXT,
                                     startTime: tracks[textTrackIdx].clips[clipLen - 1].endTime,
                                     endTime: tracks[textTrackIdx].clips[clipLen - 1].endTime + defaultDuration,
                                     trackIndex: tracks[textTrackIdx].trackIndex,
-                                    content: '添加文字',
+                                    content: `添加文字-${clipLen}`,
                                 };
 
                                 setTracks(tracks.map((track) => {
