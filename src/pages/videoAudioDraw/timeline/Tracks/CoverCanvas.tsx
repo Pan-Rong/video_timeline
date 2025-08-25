@@ -267,7 +267,7 @@ const Tracks = () => {
                         } else {
                             if (curClip.startTime > overlapClip.startTime) {
                                 // 表示当前片段在重叠片段的后面; 判断前一个片段后的空间是否足够
-                                const nextClip = overlapIdx + 2 < clips.length ? clips[overlapIdx + 2] : null;
+                                const nextClip = overlapIdx + 2 < clips.length ? clips[overlapIdx + 2] : null; // 去掉自己
                                 if (nextClip && (nextClip.startTime - overlapClip.endTime) >= curClipWidth || !nextClip && (duration - overlapClip.endTime) >= curClipWidth) {
                                     // 后一个片段后的空间足够
                                     curClip.startTime = overlapClip.endTime;
@@ -277,10 +277,9 @@ const Tracks = () => {
                                     curClip.startTime = selectedClipItem.originTime.startTime;
                                     curClip.endTime = selectedClipItem.originTime.endTime;
                                 }
-
                             } else {
                                 // 表示当前片段在重叠片段的前面; 判断前一个片段前的空间是否足够
-                                const pprevClip = overlapIdx > 0 ? clips[overlapIdx - 1] : null;
+                                const pprevClip = overlapIdx - 1 > 0 ? clips[overlapIdx - 2] : null; // 去掉自己
                                 if (pprevClip && (overlapClip.startTime - pprevClip.endTime) >= curClipWidth || !pprevClip && overlapClip.startTime >= curClipWidth) {
                                     // 前一个片段前的空间足够
                                     curClip.endTime = overlapClip.startTime;
