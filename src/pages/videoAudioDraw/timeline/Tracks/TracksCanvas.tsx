@@ -84,16 +84,16 @@ const TracksCanvas = () => {
         ctx.fillStyle = '#2d2d2d';
         ctx.fillRect(0, trackY, canvasRef.current!.width, TRACK_HEIGHT[TrackType.VIDEO]);
 
-        ctx.fillStyle = 'rgba(7, 111, 247, 0.2)';
-        ctx.beginPath();
-        ctx.roundRect(0, trackY, Math.min(canvasRef.current!.width, duration * scale), TRACK_HEIGHT[TrackType.VIDEO], [0, cornerRadius, cornerRadius, 0]);
-        ctx.fill();
-   
-
         const clip = {
             startTime: track.startTime,
             endTime: track.endTime,
         }
+
+        ctx.fillStyle = 'rgba(7, 111, 247, 0.2)';
+        ctx.beginPath();
+        ctx.roundRect(clip.startTime * scale - scrollLeft, trackY, Math.min(canvasRef.current!.width, duration * scale), TRACK_HEIGHT[TrackType.VIDEO], [0, cornerRadius, cornerRadius, 0]);
+        ctx.fill();
+   
         const startX = clip.startTime * scale - scrollLeft;
         const width = (clip.endTime - clip.startTime) * scale;
 
@@ -179,17 +179,17 @@ const TracksCanvas = () => {
         ctx.fillStyle = '#2d2d2d';
         ctx.fillRect(0, trackY, canvasRef.current!.width, TRACK_HEIGHT[TrackType.AUDIO]);
 
-        ctx.fillStyle = 'rgba(7, 111, 247, 0.2)';
-        ctx.beginPath();
-        ctx.roundRect(0, trackY, Math.min(canvasRef.current!.width, duration * scale), TRACK_HEIGHT[TrackType.AUDIO], [0, cornerRadius, cornerRadius, 0]);
-        ctx.fill();
-   
         // 绘制波形
         const startX = track.startTime * scale - scrollLeft;
         const endX = track.endTime * scale - scrollLeft;
         const width = endX - startX;
         if (!audioBuffer || !staticWaveformData) return;
 
+        ctx.fillStyle = 'rgba(7, 111, 247, 0.2)';
+        ctx.beginPath();
+        ctx.roundRect(startX, trackY, Math.min(canvasRef.current!.width, duration * scale), TRACK_HEIGHT[TrackType.AUDIO], [0, cornerRadius, cornerRadius, 0]);
+        ctx.fill();
+   
         // 仅绘制可见部分
         if (canvasRef.current && (startX + width > 0 && startX < canvasRef.current!.width)) {
             const startIdx = Math.floor(Math.max(track.startTime, startX / scale) / duration * staticWaveformData.length);
