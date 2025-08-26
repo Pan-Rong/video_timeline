@@ -1,17 +1,27 @@
 import { useRef, useEffect, useState } from 'react';
 import { useRootStore } from '../../models';
-import { TrackType, TRACK_HEIGHT, THUMBNAIL_WIDTH, TRACK_SPACING } from '../../models/constant';
+import { TrackType, TRACK_HEIGHT, THUMBNAIL_WIDTH, TRACK_SPACING, DEFAULT_SCALE } from '../../models/constant';
 import { ITrack, IVideoThumbnail, IClipItem } from '../../types';
 import { useAudioStore } from '../../models/audio';
 
 
-const TracksCanvas = () => {
+const scaleData = {
+    preScale: DEFAULT_SCALE
+}
+const TracksCanvas = (props: { videoId: string; }) => {
+    const { videoId } = props;
     const { scale, scrollLeft, tracks, } = useRootStore();
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const { duration } = useRootStore();
-    const [videoThumbnails, setVideoThumbnails] = useState<IVideoThumbnail[]>([]);
     // 1. 添加预加载缩略图的状态
-    const [preloadedThumbnails, setPreloadedThumbnails] = useState<Record<string, HTMLImageElement>>({});
+    const [preloadedThumbnails, setPreloadedThumbnails] = useState<{
+        [key: string]: {
+            img: HTMLImageElement;
+            startTime: number;
+            endTime: number;
+            id: string;
+        }
+    }>({});
     const startY = 0;
     const cornerRadius = 6; // 设置6px圆角
 
@@ -19,6 +29,10 @@ const TracksCanvas = () => {
         audioBuffer,
         staticWaveformData,
     } = useAudioStore();
+
+    useEffect(() => {
+        setPreloadedThumbnails({});
+    }, [videoId]);
 
     useEffect(() => {
         // 获取视频缩略图，用于绘制视频轨道
@@ -31,15 +45,16 @@ const TracksCanvas = () => {
                     if (!canvasRef.current) {
                         return;
                     }
-                    let newThumbnails: IVideoThumbnail[] = [];
-                    const drawEndTime = Math.min(duration, canvasRef.current?.width / scale);
+                    // 增加冗余10张，防止拖拽时图片更新不及时
+                    const drawEndTime = Math.min(duration, (canvasRef.current?.width + scrollLeft + THUMBNAIL_WIDTH * 10) / scale);
+                    const drawStartTime = Math.max(0, Math.floor(scrollLeft / scale));
                     // 帧数间隔
-                    const frameInterval = Math.ceil(10 * drawEndTime / (scale * 10));  // Math.ceil(1 * duration * 100 / (scale * 20));
-                    const imageCache: Record<string, HTMLImageElement> = {};
+                    const frameInterval = DEFAULT_SCALE / scale;  //
+                    const imageCache: any = {};
                     canvas.width = THUMBNAIL_WIDTH * 2; // 缩略图宽度
                     canvas.height = TRACK_HEIGHT[TrackType.VIDEO] * 2; // 缩略图高度
                     
-                    for (let time = 0; time < drawEndTime; time += frameInterval) {
+                    for (let time = drawStartTime; time < drawEndTime; time += frameInterval) {
                         await new Promise<void>((resolve) => {
                             // 设置视频.currentTime来获取对应时间点的帧
                             videoEle.currentTime = time;
@@ -48,19 +63,16 @@ const TracksCanvas = () => {
                                 ctx.drawImage(videoEle, 0, 0, canvas.width, canvas.height);
                                 const thumbnail = canvas.toDataURL('image/jpeg');
                                 // 创建新的视频片段
-                                const thumbnailId = `thumb-${Date.now()}-${time}`;
-                                const newThumbnail: IVideoThumbnail = {
-                                    id: thumbnailId,
-                                    startTime: time,
-                                    endTime: Math.min(time + frameInterval, drawEndTime),
-                                    thumbnail: thumbnail,
-                                };
-                                newThumbnails.push(newThumbnail);
-
+                                const thumbnailId = `thumb-${tracks[0].id}-${time.toFixed(2)}`;
                                 // 预加载图片
                                 const img = new Image();
                                 img.onload = () => {
-                                    imageCache[thumbnailId] = img;
+                                    imageCache[thumbnailId] = {
+                                        img,
+                                        startTime: time,
+                                        endTime: Math.min(time + frameInterval, drawEndTime),
+                                        id: thumbnailId,
+                                    };
                                     resolve();
                                 };
                                 // img.onerror = resolve;
@@ -69,13 +81,22 @@ const TracksCanvas = () => {
                             };     
                         });
                     }
-                    setVideoThumbnails(newThumbnails);
-                    setPreloadedThumbnails(imageCache);
+                    if (scaleData.preScale != scale) {
+                        // 缩放改动时，全更新
+                        setPreloadedThumbnails(imageCache);
+                    } else {
+                        // 部分更新
+                        setPreloadedThumbnails((prev) => ({
+                            ...prev,
+                            ...imageCache,
+                        }));
+                    }
+                    scaleData.preScale = scale;
                 }
                 handleThumbnailLoad();
             }
         }
-    }, [duration, scale, canvasRef.current]);
+    }, [duration, scale, canvasRef.current, scrollLeft, videoId]);
 
     // 绘制视频轨道
     const drawVideoClip = (ctx: CanvasRenderingContext2D, clip: IClipItem) => {
@@ -86,12 +107,18 @@ const TracksCanvas = () => {
 
         // 仅绘制可见的片段
         if (startX + width > 0 && startX < canvasRef.current!.width) {
-            if (Object.keys(preloadedThumbnails).length > 0) {  
+            const videoThumbnails = Object.values(preloadedThumbnails).map((item) => ({
+                startTime: item.startTime,
+                endTime: item.endTime,
+                id: item.id,
+            })).sort((a, b) => a.startTime - b.startTime);
+
+            if (videoThumbnails.length > 0) {  
                 // 计算每个缩略图的宽度
                 const availableWidth = Math.min(canvasRef.current!.width - startX, width); // 减去边距
                 let thumbWidth = THUMBNAIL_WIDTH; // 宽度60px
                 const imgCount = Math.ceil(availableWidth / thumbWidth);
-                const timeRanges = [startX/ scale, Math.min(startX + width, canvasRef.current!.width) / scale];
+                const timeRanges = [clip.startTime + scrollLeft / scale, Math.min(clip.endTime, (canvasRef.current!.width + scrollLeft) /scale)];
 
                 // 获取当前片段对应的所有缩略图ID
                 const clipThumbnailIds = videoThumbnails
@@ -123,7 +150,7 @@ const TracksCanvas = () => {
                         }
                     }
                     tempList.forEach((thumbId, index) => {
-                        const img = preloadedThumbnails[thumbId];
+                        const img = preloadedThumbnails[thumbId].img;
                         if (img) {
                             // 计算缩略图尺寸，保持宽高比
                             const thumbHeight = TRACK_HEIGHT[TrackType.VIDEO];
@@ -409,7 +436,7 @@ const TracksCanvas = () => {
         return () => {
             window.removeEventListener('resize', resizeCanvas);
         };
-    }, [scale, scrollLeft, canvasRef.current, tracks, videoThumbnails, preloadedThumbnails]);
+    }, [scale, scrollLeft, canvasRef.current, tracks, preloadedThumbnails]);
 
 
     // 在组件中添加useEffect钩子来设置Canvas尺寸

@@ -23,3 +23,5 @@ export const HANDLE_WIDTH = 12;
 export const THUMBNAIL_WIDTH = 60;
 
 export const MIN_CLIP_WIDTH = 30;
+
+export const DEFAULT_SCALE = 100;

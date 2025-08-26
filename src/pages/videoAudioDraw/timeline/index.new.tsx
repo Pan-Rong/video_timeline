@@ -14,7 +14,7 @@ import Playhead from './Playhead';
 const prePositionData = {
     position: 0,
 }
-const Timeline: React.FC<{ audioFile: File; }> = ({ audioFile })  => { 
+const Timeline: React.FC<{ audioFile: File; videoId: string; }> = ({ audioFile, videoId })  => { 
     const containerRef = useRef<HTMLDivElement | null>(null);
     const [loaded, setLoaded] = useState<boolean>(false);
     const { 
@@ -310,7 +310,7 @@ const Timeline: React.FC<{ audioFile: File; }> = ({ audioFile })  => {
                         loaded ? (
                             <Fragment>
                                 <Ruler />
-                                <Tracks/>
+                                <Tracks videoId={videoId} />
                                 <Playhead />
                             </Fragment>
                         ) : null

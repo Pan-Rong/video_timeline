@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { ITrack } from '../types/index';
+import { DEFAULT_SCALE } from '../models/constant';
 
 
 interface IRootStore {
@@ -28,7 +29,7 @@ interface IRootStore {
 
 
 export const useRootStore = create<IRootStore>((set) => ({
-    scale: 100, // 默认 1s 占用100px
+    scale: DEFAULT_SCALE, // 默认 1s 占用100px
     scrollLeft: 0,
     playheadPosition: 0,
     isTimelineDragging: false,

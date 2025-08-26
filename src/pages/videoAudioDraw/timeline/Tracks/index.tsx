@@ -8,16 +8,17 @@ import TracksCanvas from './TracksCanvas';
 import CoverCanvas from './CoverCanvas';
 
 
-const Tracks = () => {
+const Tracks = (props: { videoId: string; }) => {
     const containerRef = useRef<HTMLDivElement>(null);
+    const { videoId } = props;
    
     return (
         <div
             ref={containerRef}
             id={'custom_tracks_container'}
             className={styles.tracksContainer}>
-            <TracksCanvas />
-            <CoverCanvas/>
+            <TracksCanvas videoId={videoId} />
+            <CoverCanvas />
         </div>
     )
 }

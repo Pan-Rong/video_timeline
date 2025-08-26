@@ -65,7 +65,9 @@ const VideoAudioDraw = () => {
                 <VideoView curMaterial={curMaterial}></VideoView>
                 <div>
                     {
-                        curMaterial?.duration && curMaterial.audioFile ? <VideoTimeline 
+                        curMaterial?.duration && curMaterial.audioFile ? 
+                        <VideoTimeline 
+                            videoId={curMaterial.id}
                             audioFile={curMaterial.audioFile} /> : null
                     }
                 </div>
