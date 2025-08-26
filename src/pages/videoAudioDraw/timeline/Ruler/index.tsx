@@ -6,7 +6,7 @@ import {
     DEFAULT_SCALE, 
     RULER_BG_COLOR,
     RULER_TEXT_COLOR,
-    PLAYHEAD_LEFT_DIS
+    DEFAULT_LEFT_DIS
 } from '../../models/constant';
 
 const Ruler = () => { 
@@ -59,7 +59,7 @@ const Ruler = () => {
         }
 
         for (let sec = startSec, count = 0; sec <= endSec; sec = Number((sec + mainInterval).toFixed(2)), count++) {
-            const x = sec * scale - scrollLeft + PLAYHEAD_LEFT_DIS;
+            const x = sec * scale - scrollLeft + DEFAULT_LEFT_DIS;
             // 绘制刻度线
             ctx.beginPath();
             ctx.moveTo(x, 0);
@@ -77,7 +77,7 @@ const Ruler = () => {
                     // 绘制刻度线
                     // ctx.beginPath();
                     for (let i = 1; i < 5; i ++) {
-                        const subX = (sec + i * mainInterval / 5) * scale - scrollLeft + PLAYHEAD_LEFT_DIS;
+                        const subX = (sec + i * mainInterval / 5) * scale - scrollLeft + DEFAULT_LEFT_DIS;
                         ctx.moveTo(subX, 0);
                         ctx.lineTo(subX, 10);
                     }

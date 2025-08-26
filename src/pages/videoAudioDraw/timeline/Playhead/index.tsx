@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRootStore } from '../../models';
-import { RULER_HEIGHT, PLAYHEAD_LEFT_DIS } from '../../models/constant';
+import { RULER_HEIGHT, DEFAULT_LEFT_DIS } from '../../models/constant';
 import styles from './index.less';
 
 const Playhead = () => {
@@ -44,7 +44,7 @@ const Playhead = () => {
             ref={containerRef}
             className={styles.playheadContainer}
             // onMouseDown={handleDragStart}
-            style={{ left: PLAYHEAD_LEFT_DIS }}>
+            style={{ left: DEFAULT_LEFT_DIS }}>
             <div>
                 <div className={styles.playhead} />
                 <div className={styles.playheadline} />

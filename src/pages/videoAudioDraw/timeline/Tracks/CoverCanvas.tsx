@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { useRootStore } from '../../models';
-import { RULER_HEIGHT, TRACK_HEIGHT, TRACK_SPACING, HANDLE_WIDTH, MIN_CLIP_WIDTH, PLAYHEAD_LEFT_DIS } from '../../models/constant';
+import { RULER_HEIGHT, TRACK_HEIGHT, TRACK_SPACING, HANDLE_WIDTH, MIN_CLIP_WIDTH, DEFAULT_LEFT_DIS } from '../../models/constant';
 
 import styles from './index.less';
 import { ITrack, IClipItem } from '../../types';
@@ -43,7 +43,7 @@ const Tracks = () => {
         // 检查是否点击了视频片段
         for (let i = 0; i < tracks.length; i++) {
             const track = tracks[i];
-            const startX = track.startTime * scale - scrollLeft + PLAYHEAD_LEFT_DIS;
+            const startX = track.startTime * scale - scrollLeft + DEFAULT_LEFT_DIS;
             const endX = startX + (track.endTime - track.startTime) * scale;
             const trackY = startY + track.trackIndex * (TRACK_HEIGHT[track.type] + TRACK_SPACING);
             const trackEndY = trackY + TRACK_HEIGHT[track.type];
@@ -51,7 +51,7 @@ const Tracks = () => {
             if (mouseX >= startX - 10 && mouseX <= endX + 10 && mouseY >= trackY && mouseY <= trackEndY) {
                 for (let j = 0; j < track.clips.length; j++) {
                     const clip = track.clips[j];
-                    const clipStartX = clip.startTime * scale - scrollLeft + PLAYHEAD_LEFT_DIS;
+                    const clipStartX = clip.startTime * scale - scrollLeft + DEFAULT_LEFT_DIS;
                     const clipEndX = clipStartX + (clip.endTime - clip.startTime) * scale;
 
                     const preClip = j > 0 ? track.clips[j - 1] : null;
@@ -204,7 +204,7 @@ const Tracks = () => {
 
             if (handleType === 'left' && clip.trackIndex === newTrackIndex) {
                 const newStartX = mouseX;
-                const newStartTime = Math.max(0, Math.min(clip.endTime - 0.1, newStartX / scale + scrollLeft / scale));
+                const newStartTime = Math.max(0, Math.min(clip.endTime - 0.1, newStartX / scale + scrollLeft / scale - DEFAULT_LEFT_DIS / scale));
                 // 处理片段拖拽
                 const originTracks = tracks.slice(0);
                 const curTrack = originTracks.find(t => t.id === clip.parentId);
@@ -224,7 +224,8 @@ const Tracks = () => {
                 setTracks(originTracks);
             } else if (handleType === 'right' && clip.trackIndex === newTrackIndex) {
                 const newEndX = mouseX;
-                const newEndTime = Math.max(clip.startTime + 0.1, Math.min(duration, newEndX / scale + scrollLeft / scale));
+                const newEndTime = Math.max(clip.startTime + 0.1, Math.min(duration, newEndX / scale + scrollLeft / scale - DEFAULT_LEFT_DIS / scale));
+
                 // 处理片段拖拽
                 const originTracks = tracks.slice(0);
                 const curTrackIdx = originTracks.findIndex(t => t.id === clip.parentId);
@@ -351,8 +352,8 @@ const Tracks = () => {
     }
 
     const drawClip = (ctx: CanvasRenderingContext2D, clip: IClipItem) => {
-        const startX = clip.startTime * scale - scrollLeft + PLAYHEAD_LEFT_DIS;
-        const endX = clip.endTime * scale - scrollLeft + PLAYHEAD_LEFT_DIS;
+        const startX = clip.startTime * scale - scrollLeft + DEFAULT_LEFT_DIS;
+        const endX = clip.endTime * scale - scrollLeft + DEFAULT_LEFT_DIS;
         const trackY = clip.trackIndex * (TRACK_HEIGHT[clip.type] + TRACK_SPACING - 1) + startY;
 
         // 绘制选中效果

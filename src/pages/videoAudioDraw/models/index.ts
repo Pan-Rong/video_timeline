@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { ITrack } from '../types/index';
-import { DEFAULT_SCALE, PLAYHEAD_LEFT_DIS} from '../models/constant';
+import { DEFAULT_SCALE, DEFAULT_LEFT_DIS} from '../models/constant';
 
 
 interface IRootStore {

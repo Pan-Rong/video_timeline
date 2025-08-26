@@ -25,7 +25,7 @@ const Timeline: React.FC<{ audioFile: File; videoId: string; }> = ({ audioFile, 
         isPlayheadDragging,
 
         setTracks,  
-        setPlayheadPosition,
+        // setPlayheadPosition,
         setIsPlayheadDragging,
         setScale,
         setIsTimelineDragging
@@ -194,7 +194,7 @@ const Timeline: React.FC<{ audioFile: File; videoId: string; }> = ({ audioFile, 
         const clampedPosition = Math.max(0, Math.min(duration, newPosition));
         
         // 更新播放头位置
-        setPlayheadPosition(clampedPosition);
+        // setPlayheadPosition(clampedPosition);
     };
 
 

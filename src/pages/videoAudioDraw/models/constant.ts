@@ -26,7 +26,7 @@ export const MIN_CLIP_WIDTH = 30;
 
 export const DEFAULT_SCALE = 100;
 
-export const PLAYHEAD_LEFT_DIS = 200;
+export const DEFAULT_LEFT_DIS = 200;
 
 export const RULER_BG_COLOR = 'rgba(197, 206, 243, 0.2)';
 

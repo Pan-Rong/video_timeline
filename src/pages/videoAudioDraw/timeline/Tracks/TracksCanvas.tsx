@@ -10,7 +10,7 @@ import {
     CANVAS_BG_COLOR,
     TRACK_DURATION_BG_RADIUS,
     TRACK_DURATION_BG_COLOR,
-    PLAYHEAD_LEFT_DIS
+    DEFAULT_LEFT_DIS
 } from '../../models/constant';
 import { ITrack, IVideoThumbnail, IClipItem } from '../../types';
 import { useAudioStore } from '../../models/audio';
@@ -112,7 +112,7 @@ const TracksCanvas = (props: { videoId: string; }) => {
     const drawVideoClip = (ctx: CanvasRenderingContext2D, clip: IClipItem) => {
         const trackY = startY + clip.trackIndex * (TRACK_HEIGHT[clip.type] + TRACK_SPACING);
    
-        const startX = clip.startTime * scale - scrollLeft + PLAYHEAD_LEFT_DIS;
+        const startX = clip.startTime * scale - scrollLeft + DEFAULT_LEFT_DIS;
         const width = (clip.endTime - clip.startTime) * scale;
 
         // 仅绘制可见的片段
@@ -212,7 +212,7 @@ const TracksCanvas = (props: { videoId: string; }) => {
             const endIdx = Math.ceil( Math.min(clip.endTime, canvasRef.current.width / scale) / duration * staticWaveformData.length);
             const amplitudeArray = staticWaveformData.slice(startIdx, endIdx);
             // 绘制静态波形
-            drawWaveform({ startX: startX + PLAYHEAD_LEFT_DIS, ctx, width, trackY, amplitudeArray, progress: 0 });
+            drawWaveform({ startX: startX + DEFAULT_LEFT_DIS, ctx, width, trackY, amplitudeArray, progress: 0 });
         }
     }
 
@@ -319,7 +319,7 @@ const TracksCanvas = (props: { videoId: string; }) => {
         // 绘制剪辑的时间轴,带圆角的片段边框
         const trackY = startY + clip.trackIndex * (TRACK_HEIGHT[clip.type] + TRACK_SPACING);  
         const cornerRadius = 6; // 设置6px圆角
-        const startX = clip.startTime * scale - scrollLeft + PLAYHEAD_LEFT_DIS;
+        const startX = clip.startTime * scale - scrollLeft + DEFAULT_LEFT_DIS;
         const width = (clip.endTime - clip.startTime) * scale;
         ctx.fillStyle = 'rgba(9, 178, 245, 0.36)';
         ctx.beginPath();
@@ -329,7 +329,7 @@ const TracksCanvas = (props: { videoId: string; }) => {
         // 绘制文字
         ctx.fillStyle = '#fff';
         ctx.font = '16px sans-serif';
-        const textStartX = clip.startTime * scale - scrollLeft + 10  + PLAYHEAD_LEFT_DIS;;
+        const textStartX = clip.startTime * scale - scrollLeft + 10  + DEFAULT_LEFT_DIS;;
         const textStartY = trackY + TRACK_HEIGHT[TrackType.TEXT] / 2;
         // 测量文字宽度
         const text = clip.content || '';
@@ -392,7 +392,7 @@ const TracksCanvas = (props: { videoId: string; }) => {
             ctx.fillStyle =  TRACK_DURATION_BG_COLOR;
 
             ctx.roundRect(
-                track.startTime * scale - scrollLeft + PLAYHEAD_LEFT_DIS, 
+                track.startTime * scale - scrollLeft + DEFAULT_LEFT_DIS, 
                 trackY, 
                 Math.min(canvasRef.current!.width, duration * scale), 
                 TRACK_HEIGHT[track.type], 
