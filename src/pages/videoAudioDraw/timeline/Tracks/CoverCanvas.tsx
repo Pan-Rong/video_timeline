@@ -15,19 +15,13 @@ const Tracks = () => {
         isPlayheadDragging,
         duration,
         tracks,
+        selectedClipItem,
+        setSelectedClipItem,
         setTracks,
         setIsClippingOrDragging
     } = useRootStore();
     const startY = 0;
     const [dragStartX, setDragStartX] = useState<number>(0);
-    const [selectedClipItem, setSelectedClipItem] = useState<{
-        clipId: string,
-        trackId: string,
-        originTime: {
-            startTime: number,
-            endTime: number
-        }
-    } | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [isClipping, setIsClipping] = useState(false);
     const animationRef = useRef<number>();

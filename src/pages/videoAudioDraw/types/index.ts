@@ -54,6 +54,15 @@ export interface IVideoThumbnail extends IModel {
     thumbnail: string; // 添加缩略图属性
 }
 
+export interface ISelectedClip {
+    clipId: string,
+    trackId: string,
+    originTime: {
+        startTime: number,
+        endTime: number
+    }
+}
+
 export interface IClipItem extends IModel {
     parentId: string;
     id: string;

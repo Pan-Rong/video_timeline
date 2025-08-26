@@ -5,15 +5,10 @@ import { IClipItem, ITrack } from '../types';
 import Tracks from './Tracks';
 import { Button } from 'antd';
 import { useRootStore } from '../models';
-import { TRACK_HEIGHT, TrackType, SCALE_STEP, SCALE_MAX, SCALE_MIN } from '../models/constant';
+import { TRACK_HEIGHT, TrackType, SCALE_STEP, SCALE_MAX, SCALE_MIN, TEXT_DEFAULT_DURATION } from '../models/constant';
 import { useAudioStore } from '../models/audio';
 import Playhead from './Playhead';
 
-
-
-const prePositionData = {
-    position: 0,
-}
 const Timeline: React.FC<{ audioFile: File; videoId: string; }> = ({ audioFile, videoId })  => { 
     const containerRef = useRef<HTMLDivElement | null>(null);
     const [loaded, setLoaded] = useState<boolean>(false);
@@ -23,9 +18,9 @@ const Timeline: React.FC<{ audioFile: File; videoId: string; }> = ({ audioFile, 
         scrollLeft,
         tracks,
         isPlayheadDragging,
-
+        selectedClipItem,
         setTracks,  
-        // setPlayheadPosition,
+        setSelectedClipItem,
         setIsPlayheadDragging,
         setScale,
         setIsTimelineDragging
@@ -53,6 +48,7 @@ const Timeline: React.FC<{ audioFile: File; videoId: string; }> = ({ audioFile, 
         }
     ]);
     const [audioTracks, setAudioTracks] = useState<ITrack[]>([]);
+    const [addTextDisabled, setAddTextDisabled] = useState<boolean>(false);
 
     const { 
         audioContext,
@@ -211,6 +207,25 @@ const Timeline: React.FC<{ audioFile: File; videoId: string; }> = ({ audioFile, 
         }
     }, [])
 
+    useEffect(() => {
+        const textClips = tracks.find((track) => track.type === TrackType.TEXT)?.clips;
+        if (textClips?.length) {
+            let canAdd = true;
+            textClips.forEach((clip) => {
+                if (
+                    clip.startTime * scale <= scrollLeft && clip.endTime * scale > scrollLeft ||
+                    clip.startTime * scale > scrollLeft && clip.startTime * scale < scrollLeft + TEXT_DEFAULT_DURATION * scale ||
+                    duration * scale < scrollLeft + TEXT_DEFAULT_DURATION * scale
+                ) {
+                    canAdd = false;
+                }
+            })
+            setAddTextDisabled(!canAdd);
+        } else {
+            setAddTextDisabled(false);
+        }
+    }, [tracks, scrollLeft, scale, duration])
+
     return (
         <div className={styles.timelineWrapper}>
             <div className={styles.tools}>
@@ -219,18 +234,20 @@ const Timeline: React.FC<{ audioFile: File; videoId: string; }> = ({ audioFile, 
                 </div>
                 <div className={styles.tool}>
                     <Button type='primary' 
+                        disabled={addTextDisabled}
                         onClick={() => {
                             // todo
                             const textTrackIdx = tracks.findIndex((track) => track.type === TrackType.TEXT);
-                            const defaultDuration = 2; // 默认2s；
+                            const defaultDuration = TEXT_DEFAULT_DURATION; // 默认1s；
                             if (textTrackIdx === -1) {
+                                const startTime = scrollLeft / scale;
                                 const textTrackId = `text-track-${Date.now()}`;
                                 const newClip: IClipItem = {
                                     parentId: textTrackId,
                                     id: `text-${Date.now()}`,
                                     type: TrackType.TEXT,
-                                    startTime: 0,
-                                    endTime: defaultDuration,
+                                    startTime,
+                                    endTime: startTime + defaultDuration,
                                     trackIndex: tracks.length,
                                     content: '添加文字',
                                 };
@@ -247,12 +264,13 @@ const Timeline: React.FC<{ audioFile: File; videoId: string; }> = ({ audioFile, 
                             } else {
                                 const textTrackId = tracks[textTrackIdx].id;
                                 const clipLen = tracks[textTrackIdx].clips.length;
+                                const startTime = scrollLeft / scale;
                                 const newClip: IClipItem = {
                                     parentId: textTrackId,
                                     id: `text-${Date.now()}_${clipLen}`,
                                     type: TrackType.TEXT,
-                                    startTime: tracks[textTrackIdx].clips[clipLen - 1].endTime,
-                                    endTime: tracks[textTrackIdx].clips[clipLen - 1].endTime + defaultDuration,
+                                    startTime,
+                                    endTime: startTime + defaultDuration,
                                     trackIndex: tracks[textTrackIdx].trackIndex,
                                     content: `添加文字-${clipLen}`,
                                 };
@@ -273,8 +291,20 @@ const Timeline: React.FC<{ audioFile: File; videoId: string; }> = ({ audioFile, 
                             // todo
                         }} >分割</Button>
                     <Button type='primary' 
+                        disabled={!selectedClipItem}
                         onClick={() => {
-                            // todo
+                            if (selectedClipItem) {
+                                setTracks(tracks.map((track) => {
+                                    if (track.id === selectedClipItem.trackId) {
+                                        return {
+                                            ...track,
+                                            clips: track.clips.filter((clip) => clip.id !== selectedClipItem.clipId),
+                                        }
+                                    }
+                                    return track;
+                                }));
+                                setSelectedClipItem(null);
+                            }
                         }} >删除</Button>
                     <Button type='primary' 
                         onClick={() => {
