@@ -212,7 +212,7 @@ const TracksCanvas = (props: { videoId: string; }) => {
             const endIdx = Math.ceil( Math.min(clip.endTime, canvasRef.current.width / scale) / duration * staticWaveformData.length);
             const amplitudeArray = staticWaveformData.slice(startIdx, endIdx);
             // 绘制静态波形
-            drawWaveform({ startX: startX + DEFAULT_LEFT_DIS, ctx, width, trackY, amplitudeArray, progress: 0 });
+            drawWaveform({ startX: startX + DEFAULT_LEFT_DIS, ctx, width, trackY, amplitudeArray });
         }
     }
 
@@ -221,14 +221,12 @@ const TracksCanvas = (props: { videoId: string; }) => {
         startX,
         ctx,
         amplitudeArray,
-        progress,
         width,
         trackY
     }: {
         startX: number;
         ctx: CanvasRenderingContext2D,
         amplitudeArray: Uint8Array,
-        progress: number ;// 0 到 1 之间的进度值
         width: number;
         trackY: number;
     }) {
@@ -236,9 +234,8 @@ const TracksCanvas = (props: { videoId: string; }) => {
         const audioRealHeight = trackY + TRACK_HEIGHT[TrackType.AUDIO];
         const centerY = TRACK_HEIGHT[TrackType.AUDIO] / 1;
         const barWidth = width / amplitudeArray.length;
-        
-        // 计算进度线位置
-        const progressX = width * progress;
+
+        const progress = scrollLeft / scale / duration;
         
         // 创建上半部分渐变（增强版，适应折叠波形）
         const upperGradient = ctx.createLinearGradient(0, 0, 0, centerY);
@@ -271,6 +268,8 @@ const TracksCanvas = (props: { videoId: string; }) => {
             // 已播放的折叠波形
             ctx.beginPath();
             ctx.moveTo(startX, audioRealHeight);
+            // 计算进度线位置
+            const progressX = width * progress + startX;
             
             for (let i = 0; i < amplitudeArray.length; i++) {
                 const x = i * barWidth + startX; 
@@ -286,14 +285,6 @@ const TracksCanvas = (props: { videoId: string; }) => {
             ctx.closePath();
             ctx.fillStyle = upperGradientPlayed;
             ctx.fill();
-            
-            // 绘制进度指针
-            ctx.beginPath();
-            ctx.moveTo(progressX, audioRealHeight - centerY);
-            ctx.lineTo(progressX, audioRealHeight);
-            ctx.strokeStyle = 'rgba(255, 0, 0, 1)';
-            ctx.lineWidth = 1;
-            ctx.stroke();
         }
         
         // 绘制波形上半部分的轮廓线以增强视觉效果
