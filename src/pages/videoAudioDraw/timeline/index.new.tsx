@@ -23,12 +23,10 @@ const Timeline: React.FC<{ audioFile: File; videoId: string; }> = ({ audioFile, 
         scrollLeft,
         tracks,
         isPlayheadDragging,
-        playheadPosition,
 
         setTracks,  
         setPlayheadPosition,
         setIsPlayheadDragging,
-        setScrollLeft,
         setScale,
         setIsTimelineDragging
     } = useRootStore();
@@ -281,7 +279,6 @@ const Timeline: React.FC<{ audioFile: File; videoId: string; }> = ({ audioFile, 
                     <Button type='primary' 
                         onClick={() => {
                             setScale(Math.min(SCALE_MAX, scale + SCALE_STEP));
-                            // setScrollLeft();
                         }} >放大</Button>
                     <Button type='primary'
                         onClick={() => {

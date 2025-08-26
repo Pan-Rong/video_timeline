@@ -1,6 +1,17 @@
 import { useRef, useEffect, useState } from 'react';
 import { useRootStore } from '../../models';
-import { TrackType, TRACK_HEIGHT, THUMBNAIL_WIDTH, TRACK_SPACING, DEFAULT_SCALE } from '../../models/constant';
+import { 
+    TrackType, 
+    TRACK_HEIGHT, 
+    THUMBNAIL_WIDTH, 
+    TRACK_SPACING, 
+    DEFAULT_SCALE, 
+    TRACK_BG_COLOR,
+    CANVAS_BG_COLOR,
+    TRACK_DURATION_BG_RADIUS,
+    TRACK_DURATION_BG_COLOR,
+    PLAYHEAD_LEFT_DIS
+} from '../../models/constant';
 import { ITrack, IVideoThumbnail, IClipItem } from '../../types';
 import { useAudioStore } from '../../models/audio';
 
@@ -23,7 +34,6 @@ const TracksCanvas = (props: { videoId: string; }) => {
         }
     }>({});
     const startY = 0;
-    const cornerRadius = 6; // 设置6px圆角
 
     const { 
         audioBuffer,
@@ -102,7 +112,7 @@ const TracksCanvas = (props: { videoId: string; }) => {
     const drawVideoClip = (ctx: CanvasRenderingContext2D, clip: IClipItem) => {
         const trackY = startY + clip.trackIndex * (TRACK_HEIGHT[clip.type] + TRACK_SPACING);
    
-        const startX = clip.startTime * scale - scrollLeft;
+        const startX = clip.startTime * scale - scrollLeft + PLAYHEAD_LEFT_DIS;
         const width = (clip.endTime - clip.startTime) * scale;
 
         // 仅绘制可见的片段
@@ -196,13 +206,13 @@ const TracksCanvas = (props: { videoId: string; }) => {
         const width = endX - startX;
         if (!audioBuffer || !staticWaveformData) return;
 
-        // 仅绘制可见部分
+        // 仅绘制可见部分,不需要考虑最初与左边的边距
         if (canvasRef.current && (startX + width > 0 && startX < canvasRef.current!.width)) {
             const startIdx = Math.floor(Math.max(clip.startTime, startX / scale) / duration * staticWaveformData.length);
             const endIdx = Math.ceil( Math.min(clip.endTime, canvasRef.current.width / scale) / duration * staticWaveformData.length);
             const amplitudeArray = staticWaveformData.slice(startIdx, endIdx);
             // 绘制静态波形
-            drawWaveform({ startX, ctx, width, trackY, amplitudeArray, progress: 0 });
+            drawWaveform({ startX: startX + PLAYHEAD_LEFT_DIS, ctx, width, trackY, amplitudeArray, progress: 0 });
         }
     }
 
@@ -263,13 +273,13 @@ const TracksCanvas = (props: { videoId: string; }) => {
             ctx.moveTo(startX, audioRealHeight);
             
             for (let i = 0; i < amplitudeArray.length; i++) {
-            const x = i * barWidth + startX;
+                const x = i * barWidth + startX; 
 
-            if (x > progressX) break;
-            
-            const value = Math.abs((amplitudeArray[i] - 128) / 128); // 取绝对值
-            const y = audioRealHeight - (value * centerY);
-            ctx.lineTo(x, y);
+                if (x > progressX) break;
+                
+                const value = Math.abs((amplitudeArray[i] - 128) / 128); // 取绝对值
+                const y = audioRealHeight - (value * centerY);
+                ctx.lineTo(x, y);
             }
             
             ctx.lineTo(progressX, audioRealHeight);
@@ -309,7 +319,7 @@ const TracksCanvas = (props: { videoId: string; }) => {
         // 绘制剪辑的时间轴,带圆角的片段边框
         const trackY = startY + clip.trackIndex * (TRACK_HEIGHT[clip.type] + TRACK_SPACING);  
         const cornerRadius = 6; // 设置6px圆角
-        const startX = clip.startTime * scale - scrollLeft;
+        const startX = clip.startTime * scale - scrollLeft + PLAYHEAD_LEFT_DIS;
         const width = (clip.endTime - clip.startTime) * scale;
         ctx.fillStyle = 'rgba(9, 178, 245, 0.36)';
         ctx.beginPath();
@@ -319,7 +329,7 @@ const TracksCanvas = (props: { videoId: string; }) => {
         // 绘制文字
         ctx.fillStyle = '#fff';
         ctx.font = '16px sans-serif';
-        const textStartX = clip.startTime * scale - scrollLeft + 10;
+        const textStartX = clip.startTime * scale - scrollLeft + 10  + PLAYHEAD_LEFT_DIS;;
         const textStartY = trackY + TRACK_HEIGHT[TrackType.TEXT] / 2;
         // 测量文字宽度
         const text = clip.content || '';
@@ -367,20 +377,27 @@ const TracksCanvas = (props: { videoId: string; }) => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         // 绘制背景
-        ctx.fillStyle = '#1a1a1a';
+        ctx.fillStyle = CANVAS_BG_COLOR;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         // 绘制轨道
         tracks.forEach((track, index) => {
             // 轨道背景
             const trackY = startY + track.trackIndex * (TRACK_HEIGHT[track.type] + TRACK_SPACING);
-            ctx.fillStyle = '#2d2d2d';
+            ctx.fillStyle = TRACK_BG_COLOR;
             ctx.fillRect(0, trackY, canvasRef.current!.width, TRACK_HEIGHT[track.type]);
 
             // 当前轨道中总时长的背景
-            ctx.fillStyle = 'rgba(98, 138, 4, 0.08)';
             ctx.beginPath();
-            ctx.roundRect(track.startTime * scale - scrollLeft, trackY, Math.min(canvasRef.current!.width, duration * scale), TRACK_HEIGHT[track.type], [0, cornerRadius, cornerRadius, 0]);
+            ctx.fillStyle =  TRACK_DURATION_BG_COLOR;
+
+            ctx.roundRect(
+                track.startTime * scale - scrollLeft + PLAYHEAD_LEFT_DIS, 
+                trackY, 
+                Math.min(canvasRef.current!.width, duration * scale), 
+                TRACK_HEIGHT[track.type], 
+                TRACK_DURATION_BG_RADIUS
+            );
             ctx.fill();
 
             if (track.type === TrackType.VIDEO) {

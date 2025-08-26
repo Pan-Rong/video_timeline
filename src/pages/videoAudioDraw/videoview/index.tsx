@@ -1,5 +1,5 @@
 import { IVideo } from '../types';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import styles from './index.less';
 import { useRootStore } from '../models';
 
@@ -20,15 +20,17 @@ const VideoView = ({
     });
 
     const { 
-        playheadPosition,
+        scrollLeft,
         scale,
         isPlayheadDragging,
         isClippingOrDragging,
         isTimelineDragging,
         videoIsPlaying,
-        setPlayheadPosition,
-        setVideoIsPlaying
+        setVideoIsPlaying,
+        setScrollLeft
     } = useRootStore();
+
+    const [videoTime, setVideoTime] = useState(0);
 
     useEffect(() => {
         const videoCoverEle: any = document.getElementById('custom_video');
@@ -78,7 +80,7 @@ const VideoView = ({
                 const videoCoverEle: any = document.getElementById('custom_video');
                 if (videoCoverEle) {
                     console.log('视频播放进度', videoCoverEle.currentTime);
-                    setPlayheadPosition(videoCoverEle.currentTime || 0);
+                    setVideoTime(videoCoverEle.currentTime || 0);
                 }
             }
             // 监听视频播放进度
@@ -100,16 +102,25 @@ const VideoView = ({
         }
     }, [curMaterial?.id])
 
+    useEffect(() => {
+        if (videoIsPlaying) {
+            setScrollLeft(videoTime * scale);
+        }
+    }, [videoTime, videoIsPlaying])
+
     // 修改前面添加的useEffect
     useEffect(() => {
         const videoElement = document.getElementById('custom_video') as HTMLVideoElement;
         if (videoElement && !videoIsPlaying) {
             // 总是更新视频时间，无论播放状态如何
             requestAnimationFrame(() => {
-                videoElement.currentTime = playheadPosition;
+                videoElement.currentTime = Math.max(
+                    scrollLeft / scale,
+                    0,
+                );
             })
         }
-    }, [playheadPosition, videoIsPlaying]);
+    }, [videoIsPlaying, scrollLeft, scale]);
 
     useEffect(() => {
         const videoElement = document.getElementById('custom_video') as HTMLVideoElement;

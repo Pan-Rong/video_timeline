@@ -1,17 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
 import { formatTime } from '../../utils/format';
 import { useRootStore } from '../../models';
-import { RULER_HEIGHT, DEFAULT_SCALE } from '../../models/constant';
+import { 
+    RULER_HEIGHT, 
+    DEFAULT_SCALE, 
+    RULER_BG_COLOR,
+    RULER_TEXT_COLOR,
+    PLAYHEAD_LEFT_DIS
+} from '../../models/constant';
 
 const Ruler = () => { 
     const { 
         duration,
         scale, 
         scrollLeft,
-        playheadPosition,
         isTimelineDragging,
         setScrollLeft,
-        setPlayheadPosition,
         setIsTimelineDragging
     } = useRootStore();
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -20,7 +24,7 @@ const Ruler = () => {
 
     // 绘制时间刻度
     const drawTimeRuler = (ctx: CanvasRenderingContext2D) => {
-        ctx.fillStyle = '#666';
+        ctx.fillStyle = RULER_TEXT_COLOR;
         ctx.font = '12px Arial';
         ctx.textAlign = 'center';
 
@@ -55,7 +59,7 @@ const Ruler = () => {
         }
 
         for (let sec = startSec, count = 0; sec <= endSec; sec = Number((sec + mainInterval).toFixed(2)), count++) {
-            const x = sec * scale - scrollLeft;
+            const x = sec * scale - scrollLeft + PLAYHEAD_LEFT_DIS;
             // 绘制刻度线
             ctx.beginPath();
             ctx.moveTo(x, 0);
@@ -73,7 +77,7 @@ const Ruler = () => {
                     // 绘制刻度线
                     // ctx.beginPath();
                     for (let i = 1; i < 5; i ++) {
-                        const subX = (sec + i * mainInterval / 5) * scale - scrollLeft;
+                        const subX = (sec + i * mainInterval / 5) * scale - scrollLeft + PLAYHEAD_LEFT_DIS;
                         ctx.moveTo(subX, 0);
                         ctx.lineTo(subX, 10);
                     }
@@ -106,11 +110,9 @@ const Ruler = () => {
                 canvas.height = RULER_HEIGHT;
                 // 清除画布
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-
                 // 绘制背景
-                ctx.fillStyle = '#1a1a1a';
+                ctx.fillStyle = RULER_BG_COLOR;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
-
                 // 绘制时间刻度
                 drawTimeRuler(ctx);
             }
@@ -147,13 +149,6 @@ const Ruler = () => {
         setScrollLeft(newScrollLeft);
         // 更新拖拽起始位置，确保平滑拖动
         setDragStartX(e.clientX);
-
-        // 基于绝对位置计算播放头位置，确保相对静止
-        const playheadRelativePosition = playheadPosition * scale - preScrollLeft.current + newScrollLeft;
-        setPlayheadPosition(Math.max(
-            Math.min(playheadRelativePosition / scale, (parentEle.clientWidth || 0) / scale, duration),
-            0,
-        ));
         preScrollLeft.current = newScrollLeft;
     };
 

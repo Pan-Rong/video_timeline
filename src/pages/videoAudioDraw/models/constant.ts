@@ -25,3 +25,17 @@ export const THUMBNAIL_WIDTH = 60;
 export const MIN_CLIP_WIDTH = 30;
 
 export const DEFAULT_SCALE = 100;
+
+export const PLAYHEAD_LEFT_DIS = 200;
+
+export const RULER_BG_COLOR = 'rgba(197, 206, 243, 0.2)';
+
+export const RULER_TEXT_COLOR = 'rgba(130, 151, 245, 1)';
+
+export const TRACK_BG_COLOR = 'rgba(197, 206, 243, 0.2)';
+
+export const TRACK_DURATION_BG_COLOR = 'rgba(130, 151, 245, 0.2)';
+
+export const CANVAS_BG_COLOR = "rgba(207, 216, 255, 0.20)";
+
+export const TRACK_DURATION_BG_RADIUS = 6;

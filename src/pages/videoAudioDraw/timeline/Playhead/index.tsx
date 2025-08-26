@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRootStore } from '../../models';
-import { RULER_HEIGHT } from '../../models/constant';
+import { RULER_HEIGHT, PLAYHEAD_LEFT_DIS } from '../../models/constant';
 import styles from './index.less';
 
 const Playhead = () => {
@@ -8,12 +8,10 @@ const Playhead = () => {
     const parentRef = useRef<HTMLElement | null>(null);
 
     const { 
-        playheadPosition,
         scale,
         scrollLeft,
         isTimelineDragging,
         isClippingOrDragging,
-
         setIsPlayheadDragging
     } = useRootStore();
 
@@ -45,14 +43,8 @@ const Playhead = () => {
         <div  
             ref={containerRef}
             className={styles.playheadContainer}
-            onMouseDown={handleDragStart}
-            style={{ left: Math.max(
-                0,
-                Math.min(
-                    parentRef.current?.clientWidth || 0, 
-                    Math.floor(playheadPosition * scale - scrollLeft))
-                )
-            }}>
+            // onMouseDown={handleDragStart}
+            style={{ left: PLAYHEAD_LEFT_DIS }}>
             <div>
                 <div className={styles.playhead} />
                 <div className={styles.playheadline} />

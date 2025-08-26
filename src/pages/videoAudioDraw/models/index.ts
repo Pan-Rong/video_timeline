@@ -1,12 +1,11 @@
 import { create } from 'zustand';
 import { ITrack } from '../types/index';
-import { DEFAULT_SCALE } from '../models/constant';
+import { DEFAULT_SCALE, PLAYHEAD_LEFT_DIS} from '../models/constant';
 
 
 interface IRootStore {
     scale: number;
     scrollLeft: number;
-    playheadPosition: number;
     isTimelineDragging: boolean;
     isPlayheadDragging: boolean;
     selectedClipId: string | null;
@@ -22,7 +21,6 @@ interface IRootStore {
     setDuration: (duration: number) => void;
     setSelectedClipId: (selectedClipId: string | null) => void;
     setIsTimelineDragging: (isTimelineDragging: boolean) => void;
-    setPlayheadPosition: (playheadPosition: number) => void;
     setScrollLeft: (scrollLeft: number) => void;
     setScale: (scale: number) => void;
 }
@@ -31,7 +29,6 @@ interface IRootStore {
 export const useRootStore = create<IRootStore>((set) => ({
     scale: DEFAULT_SCALE, // 默认 1s 占用100px
     scrollLeft: 0,
-    playheadPosition: 0,
     isTimelineDragging: false,
     isPlayheadDragging: false,
     selectedClipId: null,
@@ -47,7 +44,6 @@ export const useRootStore = create<IRootStore>((set) => ({
     setDuration: (duration: number) => set(() => ({ duration })),
     setSelectedClipId: (selectedClipId: string | null) => set(() => ({ selectedClipId })),
     setIsTimelineDragging: (isTimelineDragging: boolean) => set(() => ({ isTimelineDragging })),
-    setPlayheadPosition: (playheadPosition: number) => set(() => ({ playheadPosition })),
     setScrollLeft: (scrollLeft: number) => set(() => ({ scrollLeft })),
     setScale: (scale: number) => set(() => ({ scale })),
 }));
