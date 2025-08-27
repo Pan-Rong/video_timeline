@@ -44,7 +44,7 @@ const Playhead = () => {
             ref={containerRef}
             className={styles.playheadContainer}
             // onMouseDown={handleDragStart}
-            style={{ left: DEFAULT_LEFT_DIS }}>
+            style={{ left: DEFAULT_LEFT_DIS - 6 }}>
             <div>
                 <div className={styles.playhead} />
                 <div className={styles.playheadline} />

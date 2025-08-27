@@ -264,7 +264,7 @@ const TracksCanvas = (props: { videoId: string; }) => {
         ctx.fill();
         
         // 绘制已播放部分（如果有进度）
-        if (progress > 0 && progress < 1) {
+        if (progress > 0 && progress <= 1) {
             // 已播放的折叠波形
             ctx.beginPath();
             ctx.moveTo(startX, audioRealHeight);
