@@ -5,7 +5,7 @@ import { IClipItem, ITrack } from '../types';
 import Tracks from './Tracks';
 import { Button } from 'antd';
 import { useRootStore } from '../models';
-import { TRACK_HEIGHT, TrackType, SCALE_STEP, SCALE_MAX, SCALE_MIN, TEXT_DEFAULT_DURATION } from '../models/constant';
+import { TRACK_HEIGHT, TrackType, SCALE_STEP, SCALE_MAX, SCALE_MIN, TEXT_DEFAULT_DURATION, MIN_SPLIT_INTERVAL } from '../models/constant';
 import { useAudioStore } from '../models/audio';
 import Playhead from './Playhead';
 
@@ -236,7 +236,6 @@ const Timeline: React.FC<{ audioFile: File; videoId: string; }> = ({ audioFile, 
                     <Button type='primary' 
                         disabled={addTextDisabled}
                         onClick={() => {
-                            // todo
                             const textTrackIdx = tracks.findIndex((track) => track.type === TrackType.TEXT);
                             const defaultDuration = TEXT_DEFAULT_DURATION; // 默认1s；
                             if (textTrackIdx === -1) {
@@ -287,8 +286,48 @@ const Timeline: React.FC<{ audioFile: File; videoId: string; }> = ({ audioFile, 
                             }
                         }} >添加文字</Button>
                     <Button type='primary' 
+                        disabled={
+                            !selectedClipItem || selectedClipItem.type !== TrackType.TEXT ||
+                            !(selectedClipItem.originTime.startTime <= (scrollLeft / scale - MIN_SPLIT_INTERVAL) &&
+                            selectedClipItem.originTime.endTime >= (scrollLeft / scale + MIN_SPLIT_INTERVAL))
+                        }
                         onClick={() => {
-                            // todo
+                            // 处理分割
+                            if (selectedClipItem && selectedClipItem.type === TrackType.TEXT) {
+                                const textClips = tracks.find((track) => track.id === selectedClipItem.trackId)?.clips;
+                                if (textClips?.length) {
+                                    const clipIdx = textClips.findIndex((clip) => clip.id === selectedClipItem.clipId);
+                                    if (clipIdx > -1) {
+                                        const newClip = {
+                                            ...textClips[clipIdx],
+                                            id: `split_${Date.now()}`,
+                                            startTime: scrollLeft / scale,
+                                        }
+                                        textClips[clipIdx] = {
+                                            ...textClips[clipIdx],
+                                            endTime: scrollLeft / scale,
+                                        }
+                                        textClips.splice(clipIdx, 0, newClip);
+                                        setTracks(tracks.map((track) => {
+                                            if (track.id === selectedClipItem.trackId) {
+                                                return {
+                                                    ...track,
+                                                    clips: textClips,
+                                                }
+                                            }
+                                            return track;
+                                        }));
+                                        // 更新选中的切片
+                                        setSelectedClipItem({
+                                            ...selectedClipItem,
+                                            originTime: {
+                                                startTime: textClips[clipIdx].startTime,
+                                                endTime: textClips[clipIdx].endTime,
+                                            }
+                                        });
+                                    }
+                                }
+                            }
                         }} >分割</Button>
                     <Button type='primary' 
                         disabled={!selectedClipItem}

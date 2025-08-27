@@ -110,6 +110,7 @@ const Tracks = () => {
                 setIsClipping(true);
             }
             setSelectedClipItem({
+                type: item.type,
                 clipId: item.id,
                 trackId: item.parentId,
                 originTime: { // 原始位置,用于拖拽后如果有重叠且不能前后调整时还原到最初用

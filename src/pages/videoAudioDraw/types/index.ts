@@ -57,6 +57,7 @@ export interface IVideoThumbnail extends IModel {
 export interface ISelectedClip {
     clipId: string,
     trackId: string,
+    type: TrackType;
     originTime: {
         startTime: number,
         endTime: number

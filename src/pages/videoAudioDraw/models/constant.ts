@@ -41,3 +41,6 @@ export const CANVAS_BG_COLOR = "rgba(207, 216, 255, 0.20)";
 export const TRACK_DURATION_BG_RADIUS = 6;
 
 export const TEXT_DEFAULT_DURATION = 1;
+
+// 可分割的最小时间间隔
+export const MIN_SPLIT_INTERVAL = 0.1;
