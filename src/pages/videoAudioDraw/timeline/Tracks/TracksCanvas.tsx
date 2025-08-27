@@ -19,8 +19,7 @@ import { useAudioStore } from '../../models/audio';
 const scaleData = {
     preScale: DEFAULT_SCALE
 }
-const TracksCanvas = (props: { videoId: string; }) => {
-    const { videoId } = props;
+const TracksCanvas = () => {
     const { scale, scrollLeft, tracks, } = useRootStore();
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const { duration } = useRootStore();
@@ -39,10 +38,6 @@ const TracksCanvas = (props: { videoId: string; }) => {
         audioBuffer,
         staticWaveformData,
     } = useAudioStore();
-
-    useEffect(() => {
-        setPreloadedThumbnails({});
-    }, [videoId]);
 
     useEffect(() => {
         // 获取视频缩略图，用于绘制视频轨道
@@ -68,7 +63,6 @@ const TracksCanvas = (props: { videoId: string; }) => {
                         await new Promise<void>((resolve) => {
                             // 设置视频.currentTime来获取对应时间点的帧
                             videoEle.currentTime = time;
-                            // 使用setTimeout确保视频帧已更新
                             videoEle.onseeked = () => {
                                 ctx.drawImage(videoEle, 0, 0, canvas.width, canvas.height);
                                 const thumbnail = canvas.toDataURL('image/jpeg');
@@ -106,7 +100,7 @@ const TracksCanvas = (props: { videoId: string; }) => {
                 handleThumbnailLoad();
             }
         }
-    }, [duration, scale, canvasRef.current, scrollLeft, videoId]);
+    }, [duration, scale, canvasRef.current, scrollLeft]);
 
     // 绘制视频轨道
     const drawVideoClip = (ctx: CanvasRenderingContext2D, clip: IClipItem) => {

@@ -10,6 +10,8 @@ import { useAudioStore } from '../models/audio';
 import Playhead from './Playhead';
 
 const Timeline: React.FC<{ audioFile: File; videoId: string; }> = ({ audioFile, videoId })  => { 
+    // 在组件中引入Worker
+    const audioWorker = useRef<Worker | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
     const [loaded, setLoaded] = useState<boolean>(false);
     const { 
@@ -58,6 +60,18 @@ const Timeline: React.FC<{ audioFile: File; videoId: string; }> = ({ audioFile, 
         setStaticWaveformData   // 存储静态波形数据
     } = useAudioStore();
 
+    // 初始化Worker
+    useEffect(() => {
+        //项目中需要正确设置Worker路径
+        audioWorker.current = new Worker('/audio-worklet/waveform-processor.js');
+        
+        return () => {
+            if (audioWorker.current) {
+                audioWorker.current.terminate();
+            }
+        };
+    }, []);
+
     useEffect(() => {
         setTracks([...videoTracks, ...audioTracks]);
     }, [videoTracks, audioTracks])
@@ -92,67 +106,114 @@ const Timeline: React.FC<{ audioFile: File; videoId: string; }> = ({ audioFile, 
                     smoothingTimeConstant: 0.8,
                 });
                 setAudioBuffer(buffer);
-                
-                // 创建临时的源节点来获取完整波形数据（不实际播放）
-                const tempSourceNode = new AudioBufferSourceNode(context, {
-                    buffer: buffer,
-                });
-                
-                tempSourceNode.connect(analyserNode);
-                // 获取波形数据
-                const amplitudeArray = new Uint8Array(analyserNode.frequencyBinCount);
-                const channelData = buffer.getChannelData(0);
-                const step = Math.floor(channelData.length / amplitudeArray.length);
-                // 结合最大值和平均值的混合方法
-                const windowSize = 8; // 窗口大小
-                for (let i = 0; i < amplitudeArray.length; i++) {
-                    let sum = 0;
-                    let max = 0;
-                    let count = 0;
+
+                // 使用Web Worker处理波形数据
+                if (audioWorker.current) {
+                    const channelData = buffer.getChannelData(0);
+                    const step = Math.floor(channelData.length / analyserNode.frequencyBinCount);
+                    const windowSize = 8;
                     
-                    for (let j = 0; j < windowSize; j++) {
-                        const index = i * step + Math.floor(j * step / windowSize);
-                        if (index < channelData.length) {
-                            const absValue = Math.abs(channelData[index]);
-                            sum += absValue;
-                            if (absValue > max) {
-                                max = absValue;
-                            }
-                            count++;
-                        }
-                    }
-                    const avgValue = sum / count;
-                    // 使用70%的最大值和30%的平均值混合
-                    const mixedValue = max * 0.7 + avgValue * 0.3;
-                    
-                    // 映射到 [0, 255]
-                    amplitudeArray[i] = Math.floor((mixedValue + 1) * 128);
-                }
-                setWaveformData(amplitudeArray);
-                // 创建静态波形数据的副本
-                setStaticWaveformData(new Uint8Array(amplitudeArray));
-                const audioTrackId = `audio-${Date.now()}`;
-                const newAudioTrack: ITrack = {
-                        id: audioTrackId,
-                        startTime: 0,
-                        endTime: buffer.duration,
-                        color: '#9333ea', 
-                        name: audioFile.name,
-                        type: TrackType.AUDIO, 
-                        trackIndex: 1,
-                        height: TRACK_HEIGHT[TrackType.AUDIO],
-                        clips: [{
-                            parentId: audioTrackId,
-                            id: 'audio-clip-default',
-                            type: TrackType.AUDIO,
+                    // 设置Worker消息处理
+                    audioWorker.current.onmessage = (workerEvent) => {
+                        const amplitudeArray = workerEvent.data as Uint8Array;
+                        setWaveformData(amplitudeArray);
+                        setStaticWaveformData(new Uint8Array(amplitudeArray));
+                        
+                        // 创建音频轨道
+                        const audioTrackId = `audio-${Date.now()}`;
+                        const newAudioTrack: ITrack = {
+                            id: audioTrackId,
                             startTime: 0,
                             endTime: buffer.duration,
+                            color: '#9333ea',
+                            name: audioFile.name,
+                            type: TrackType.AUDIO,
                             trackIndex: 1,
                             height: TRACK_HEIGHT[TrackType.AUDIO],
-                        }],
+                            clips: [{
+                                parentId: audioTrackId,
+                                id: 'audio-clip-default',
+                                type: TrackType.AUDIO,
+                                startTime: 0,
+                                endTime: buffer.duration,
+                                trackIndex: 1,
+                                height: TRACK_HEIGHT[TrackType.AUDIO],
+                            }],
+                        };
+                        
+                        setAudioTracks([newAudioTrack]);
                     };
                     
-                setAudioTracks([newAudioTrack]);
+                    // 向Worker发送数据
+                    audioWorker.current.postMessage({
+                        channelData, // 这会自动进行Transferable优化
+                        bufferLength: analyserNode.frequencyBinCount,
+                        step,
+                        windowSize
+                    });
+                } else {
+                    // worker 不存在时，使用普通方式获取波形数据
+                    // 创建临时的源节点来获取完整波形数据（不实际播放）
+                    const tempSourceNode = new AudioBufferSourceNode(context, {
+                        buffer: buffer,
+                    });
+                    
+                    tempSourceNode.connect(analyserNode);
+                    // 获取波形数据
+                    const amplitudeArray = new Uint8Array(analyserNode.frequencyBinCount);
+                    const channelData = buffer.getChannelData(0);
+                    const step = Math.floor(channelData.length / amplitudeArray.length);
+                    // 结合最大值和平均值的混合方法
+                    const windowSize = 8; // 窗口大小
+                    for (let i = 0; i < amplitudeArray.length; i++) {
+                        let sum = 0;
+                        let max = 0;
+                        let count = 0;
+                        
+                        for (let j = 0; j < windowSize; j++) {
+                            const index = i * step + Math.floor(j * step / windowSize);
+                            if (index < channelData.length) {
+                                const absValue = Math.abs(channelData[index]);
+                                sum += absValue;
+                                if (absValue > max) {
+                                    max = absValue;
+                                }
+                                count++;
+                            }
+                        }
+                        const avgValue = sum / count;
+                        // 使用70%的最大值和30%的平均值混合
+                        const mixedValue = max * 0.7 + avgValue * 0.3;
+                        
+                        // 映射到 [0, 255]
+                        amplitudeArray[i] = Math.floor((mixedValue + 1) * 128);
+                    }
+                    setWaveformData(amplitudeArray);
+                    // 创建静态波形数据的副本
+                    setStaticWaveformData(new Uint8Array(amplitudeArray));
+                    const audioTrackId = `audio-${Date.now()}`;
+                    const newAudioTrack: ITrack = {
+                            id: audioTrackId,
+                            startTime: 0,
+                            endTime: buffer.duration,
+                            color: '#9333ea', 
+                            name: audioFile.name,
+                            type: TrackType.AUDIO, 
+                            trackIndex: 1,
+                            height: TRACK_HEIGHT[TrackType.AUDIO],
+                            clips: [{
+                                parentId: audioTrackId,
+                                id: 'audio-clip-default',
+                                type: TrackType.AUDIO,
+                                startTime: 0,
+                                endTime: buffer.duration,
+                                trackIndex: 1,
+                                height: TRACK_HEIGHT[TrackType.AUDIO],
+                            }],
+                        };
+                        
+                    setAudioTracks([newAudioTrack]);
+                }
             })
             .catch((error) => {
                 console.error('音频解码错误:', error);
@@ -376,7 +437,7 @@ const Timeline: React.FC<{ audioFile: File; videoId: string; }> = ({ audioFile, 
                         loaded ? (
                             <Fragment>
                                 <Ruler />
-                                <Tracks videoId={videoId} />
+                                <Tracks />
                                 <Playhead />
                             </Fragment>
                         ) : null

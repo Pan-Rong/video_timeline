@@ -1,46 +1,33 @@
-class WaveformProcessor extends AudioWorkletProcessor {
-  constructor() {
-    super();
-    this.port.onmessage = (event) => {
-      // 可以在这里处理从主线程发送的消息
-    };
-  }
-
-  process(inputs, outputs, parameters) {
-    // 获取输入缓冲区
-    const input = inputs[0];
-    if (input.length > 0) {
-      const channelData = input[0];
+onmessage = (event) => {
+  // 可以在这里处理从主线程发送的消息
+  const { channelData, bufferLength, step, windowSize } = event.data;
+  
+  const amplitudeArray = new Uint8Array(bufferLength);
+  
+  // 音频数据处理逻辑
+  for (let i = 0; i < bufferLength; i++) {
+      let sum = 0;
+      let max = 0;
+      let count = 0;
       
-      // 为了避免过多的消息传递，我们对数据进行降采样
-      const sampleRate = 10; // 每秒发送10次数据
-      const blockSize = Math.floor(channelData.length / sampleRate);
-      
-      if (blockSize > 0) {
-        // 创建降采样后的数组
-        const downsampledData = new Float32Array(sampleRate);
-        
-        for (let i = 0; i < sampleRate; i++) {
-          let sum = 0;
-          const startIndex = i * blockSize;
-          
-          // 计算块的平均值
-          for (let j = 0; j < blockSize; j++) {
-            sum += Math.abs(channelData[startIndex + j]);
+      for (let j = 0; j < windowSize; j++) {
+          const index = i * step + Math.floor(j * step / windowSize);
+          if (index < channelData.length) {
+              const absValue = Math.abs(channelData[index]);
+              sum += absValue;
+              if (absValue > max) {
+                  max = absValue;
+              }
+              count++;
           }
-          
-          downsampledData[i] = sum / blockSize;
-        }
-        
-        // 向主线程发送降采样后的波形数据
-        this.port.postMessage(downsampledData);
       }
-    }
-    
-    // 返回true表示继续处理
-    return true;
+      const avgValue = sum / count;
+      // 使用70%的最大值和30%的平均值混合
+      const mixedValue = max * 0.7 + avgValue * 0.3;
+      
+      // 映射到 [0, 255]
+      amplitudeArray[i] = Math.floor((mixedValue + 1) * 128);
   }
-}
-
-// 注册处理器
-registerProcessor('waveform-processor', WaveformProcessor);
+  // 发送处理结果回主线程
+  postMessage(amplitudeArray, [amplitudeArray.buffer]);
+};
