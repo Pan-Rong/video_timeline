@@ -271,14 +271,20 @@ const TracksCanvas = (props: { videoId: string; }) => {
             // 计算进度线位置
             const progressX = width * progress + startX;
             
+            let progressY = audioRealHeight;
+
             for (let i = 0; i < amplitudeArray.length; i++) {
                 const x = i * barWidth + startX; 
 
                 if (x > progressX) break;
                 
                 const value = Math.abs((amplitudeArray[i] - 128) / 128); // 取绝对值
-                const y = audioRealHeight - (value * centerY);
-                ctx.lineTo(x, y);
+                progressY = audioRealHeight - (value * centerY);
+                ctx.lineTo(x, progressY);
+            }
+
+            if (progressY !== audioRealHeight) {
+                ctx.lineTo(progressX, progressY + (audioRealHeight - progressY) / 2);
             }
             
             ctx.lineTo(progressX, audioRealHeight);
@@ -385,7 +391,7 @@ const TracksCanvas = (props: { videoId: string; }) => {
             ctx.roundRect(
                 track.startTime * scale - scrollLeft + DEFAULT_LEFT_DIS, 
                 trackY, 
-                Math.min(canvasRef.current!.width, duration * scale), 
+                Math.min(canvasRef.current!.width + scrollLeft, duration * scale), 
                 TRACK_HEIGHT[track.type], 
                 TRACK_DURATION_BG_RADIUS
             );
