@@ -124,9 +124,11 @@ const extractAudioWithWebAudio = (videoElement: HTMLVideoElement): Promise<Blob>
     });
 };
 
+
 // 创建FFmpeg实例
 const ffmpeg = new FFmpeg();
-
+let initialized = false;
+let videoInitialized = false;
 /**
  * 从视频文件中提取音频
  * @param videoFile 视频文件对象
@@ -146,7 +148,7 @@ export const extractAudioWithFFmpeg = async (videoFile: File, options?: {
       filename = `extracted_audio_${Date.now()}.${format}`
     } = options || {};
 
-    console.log('---ffmpeg.loaded--audio-', ffmpeg.loaded)
+    console.log('---ffmpeg.loaded--audio-', ffmpeg.loaded, initialized)
     // 加载FFmpeg核心库
     if (!ffmpeg.loaded) {
       await ffmpeg.load({
@@ -160,6 +162,7 @@ export const extractAudioWithFFmpeg = async (videoFile: File, options?: {
           "text/javascript"
         ),
       });
+      initialized = true;
     }
 
     const processStartTime = Date.now();
@@ -366,4 +369,3 @@ export const isWebAssemblySupported = (): boolean => {
     return false;
   }
 };
-

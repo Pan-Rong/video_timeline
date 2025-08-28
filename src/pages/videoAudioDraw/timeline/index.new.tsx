@@ -5,11 +5,12 @@ import { IClipItem, ITrack } from '../types';
 import Tracks from './Tracks';
 import { Button } from 'antd';
 import { useRootStore } from '../models';
-import { TRACK_HEIGHT, TrackType, SCALE_STEP, SCALE_MAX, SCALE_MIN, TEXT_DEFAULT_DURATION, MIN_SPLIT_INTERVAL } from '../models/constant';
+import { TRACK_HEIGHT, TrackType, SCALE_STEP, SCALE_MAX, SCALE_MIN, TEXT_DEFAULT_DURATION, MIN_SPLIT_INTERVAL, DEFAULT_LEFT_DIS, THUMBNAIL_WIDTH } from '../models/constant';
 import { useAudioStore } from '../models/audio';
 import Playhead from './Playhead';
 
-const Timeline: React.FC<{ audioFile: File; videoId: string; }> = ({ audioFile, videoId })  => { 
+
+const Timeline: React.FC<{ audioFile: File; videoId: string; videoFile: File; }> = ({ audioFile, videoId, videoFile })  => { 
     // 在组件中引入Worker
     const audioWorker = useRef<Worker | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);

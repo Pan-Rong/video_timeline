@@ -47,6 +47,7 @@ const VideoAudioDraw = () => {
                                 type: TrackType.VIDEO,
                                 src: bgVideoEle.src,
                                 audioFile,
+                                videoFile: file,
                                 duration: bgVideoEle.duration,
                                 width: bgVideoEle.videoWidth,
                                 height: bgVideoEle.videoHeight,
@@ -68,6 +69,7 @@ const VideoAudioDraw = () => {
                         curMaterial?.duration && curMaterial.audioFile ? 
                         <VideoTimeline 
                             videoId={curMaterial.id}
+                            videoFile={curMaterial.videoFile}
                             audioFile={curMaterial.audioFile} /> : null
                     }
                 </div>
