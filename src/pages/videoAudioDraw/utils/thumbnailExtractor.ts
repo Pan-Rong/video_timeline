@@ -85,38 +85,67 @@ export class FastThumbnailExtractor {
         video.currentTime = time;
       };
       
-      video.onseeked = () => {
-        if (video.src !== url) {
+      video.onseeked = async () => {
+        console.log('--video-.readyState---', video.readyState)
+        if (video.src !== url || video.readyState < 2) {
           return;
         }
 
         const canvas = this.canvasPool[index % this.maxConcurrency];
         // 确保画布尺寸正确
         // 每次都重新设置尺寸，确保万无一失
-        canvas.width = THUMBNAIL_WIDTH * 2;
-        canvas.height = TRACK_HEIGHT[TrackType.VIDEO] * 2;
+        const w = THUMBNAIL_WIDTH * 2;
+        const h = TRACK_HEIGHT[TrackType.VIDEO] * 2;
+        canvas.width = w;
+        canvas.height = h;
+
+        const bmp = await createImageBitmap(video, { 
+          resizeWidth: w, 
+          resizeHeight: h,
+          resizeQuality: 'medium'
+        });
   
         const ctx = canvas.getContext('2d')!;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        // 使用同步的 convertToBlob
-        canvas.convertToBlob({ type: 'image/jpeg', quality: 0.8 })
-          .then(blob => {
+
+        ctx.drawImage(bmp, 0, 0, w, h);
+        // 释放资源
+        bmp.close();
+
+        const blob = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.7 });
+
+        try {
+          const img = document.createElement('img');
+          img.src = URL.createObjectURL(blob);
+          document.body.appendChild(img);
+
+          resolve({
+            startTime: time,
+            url: URL.createObjectURL(blob)
+          })
+        } catch (err) {
+          console.log('-err-222-11111', err);
+        }
+        
+        // ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        // // 使用同步的 convertToBlob
+        // canvas.convertToBlob({ type: 'image/jpeg', quality: 0.8 })
+        //   .then(blob => {
           
 
-            try {
-              const img = document.createElement('img');
-              img.src = URL.createObjectURL(blob);
-              document.body.appendChild(img);
+        //     try {
+        //       const img = document.createElement('img');
+        //       img.src = URL.createObjectURL(blob);
+        //       document.body.appendChild(img);
 
-              resolve({
-                startTime: time,
-                url: URL.createObjectURL(blob)
-              })
-            } catch (err) {
-              console.log('-err-222-11111', err);
-            }
-          })
-          .catch(reject);
+        //       resolve({
+        //         startTime: time,
+        //         url: URL.createObjectURL(blob)
+        //       })
+        //     } catch (err) {
+        //       console.log('-err-222-11111', err);
+        //     }
+        //   })
+        //   .catch(reject);
         
       };
       
