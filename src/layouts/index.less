@@ -1,0 +1,40 @@
+  body {
+    margin: 0px;
+  }
+
+  .warpper {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    padding: 20px;
+    box-sizing: border-box;
+
+    .leftContent {
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        width: 15%;
+        height: 100%;
+    }
+
+    :global {
+      .commonTool {
+        position: absolute;
+        top: -15px;
+        left: 10px;
+
+        & > span + span {
+          margin-left: 20px;
+        }
+      }
+    }
+
+    .rightContent {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        width: 85%;
+        height: 100%;
+    }
+}
