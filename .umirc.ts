@@ -10,13 +10,14 @@ export default defineConfig({
   ],
   npmClient: 'yarn',
   https: {
-    hosts: ['story-https.metaso.com', 'localhost'],
-    cert: './metaso.cn.crt',
-    key: './metaso.cn.key',
+    hosts: ['story-https.metaso.cn', 'localhost'],
+    cert: './localhost.crt',
+    key: './localhost.key',
+    http2: false, // 🔥 关键：禁用 spdy，使用原生 https
   },
   proxy: {
     '/api': {
-      target: 'https://story-https.metaso.com',
+      target: 'https://story-https.metaso.cn',
       changeOrigin: true,
       secure: false,
     }
